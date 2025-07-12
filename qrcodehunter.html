@@ -7,7 +7,7 @@
 		<title>Caça ao QR Code - Gincana Educativa</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.7/dist/html5-qrcode.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 		<style>
 			/* Importação de fontes */
@@ -26,6 +26,31 @@
 			body {
 				font-family: 'Nunito', sans-serif;
 				background-color: #F9FAFB;
+			}
+			
+			/* Estilos para o scanner de QR code */
+			#qr-reader {
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
+			
+			#qr-reader__dashboard {
+				padding: 8px;
+				background-color: #f3f4f6;
+			}
+			
+			#qr-reader__scan_region {
+				background-color: #000;
+				min-height: 300px;
+			}
+			
+			#qr-reader__scan_region > img {
+				opacity: 0.6;
+			}
+			
+			#qr-reader__status {
+				color: #4F46E5;
+				font-weight: bold;
+				padding: 8px 0;
 			}
 
 			/* Estilo do banner de vencedor */
@@ -392,13 +417,18 @@
 					</div>
 
 					<div class="qr-scanner mb-6" id="scanner-container">
-						<div id="qr-reader" style="width: 100%;"></div>
+						<div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
 					</div>
 
-					<button id="scanner-button" onclick="startScanner()"
-						class="w-full btn-accent py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition mb-6">
-						Iniciar Scanner
-					</button>
+					<div class="flex flex-col space-y-3 mb-6">
+						<button id="scanner-button" onclick="startScanner()"
+							class="w-full btn-accent py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition">
+							Iniciar Scanner
+						</button>
+						<button id="camera-switch" onclick="switchCamera()" class="hidden w-full bg-gray-200 py-2 px-4 rounded-lg font-medium text-gray-700 hover:bg-gray-300 transition">
+							Alternar Câmera
+						</button>
+					</div>
 
 					<div id="scan-result" class="hidden bg-green-50 rounded-lg p-6 text-center">
 						<h3 class="text-2xl font-bold text-green-800 mb-2">QR Code Encontrado!</h3>
@@ -471,6 +501,7 @@
 			let scannerActive = false;
 			let currentTeamId = null;
 			let html5QrScanner = null;
+			let currentCamera = 'environment'; // 'environment' para câmera traseira, 'user' para frontal
 
 			// Elementos do DOM
 			const screens = {
@@ -897,10 +928,10 @@
 
 				// Criar instância do scanner HTML5 QR Code
 				html5QrScanner = new Html5Qrcode("qr-reader");
-				const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+				const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
 
 				html5QrScanner.start(
-					{ facingMode: "environment" },
+					{ facingMode: currentCamera },
 					config,
 					onQRCodeSuccess,
 					onQRCodeError
@@ -908,6 +939,15 @@
 					scannerActive = true;
 					scannerButton.textContent = 'Scanner ativo';
 					console.log("Scanner iniciado com sucesso");
+					// Mostrar botão para alternar câmera
+					document.getElementById('camera-switch').classList.remove('hidden');
+					// Adicionar mensagem para o usuário apontar para um QR code
+					const qrReader = document.getElementById('qr-reader');
+					const helpText = document.createElement('p');
+					helpText.id = 'scanner-help-text';
+					helpText.className = 'text-center mt-2 text-gray-600';
+					helpText.textContent = 'Aponte a câmera para um QR Code';
+					qrReader.parentNode.insertBefore(helpText, qrReader.nextSibling);
 				}).catch((err) => {
 					console.error("Erro ao iniciar scanner:", err);
 					errorMessage.textContent = `Erro ao iniciar o scanner: ${err}`;
@@ -919,8 +959,18 @@
 
 			function onQRCodeSuccess(decodedText, decodedResult) {
 				console.log(`QR Code detectado: ${decodedText}`);
+				// Adicionar um feedback visual para o usuário
+				const qrReader = document.getElementById('qr-reader');
+				qrReader.classList.add('border-2', 'border-green-500');
+				
 				// Parar o scanner após detectar um código
 				stopScanner();
+				
+				// Remover o destaque após um curto período
+				setTimeout(() => {
+					qrReader.classList.remove('border-2', 'border-green-500');
+				}, 2000);
+				
 				// Processar o código QR
 				processScannedQR(decodedText);
 			}
@@ -941,6 +991,15 @@
 					const scannerButton = document.getElementById('scanner-button');
 					scannerButton.disabled = false;
 					scannerButton.textContent = 'Iniciar Scanner';
+					
+					// Esconder botão para alternar câmera
+					document.getElementById('camera-switch').classList.add('hidden');
+					
+					// Remover o texto de ajuda se existir
+					const helpText = document.getElementById('scanner-help-text');
+					if (helpText) {
+						helpText.remove();
+					}
 				}
 			}
 
@@ -1103,6 +1162,36 @@
 				});
 			}
 
+			// Função para alternar entre câmeras frontal e traseira
+			function switchCamera() {
+				if (scannerActive && html5QrScanner) {
+					// Parar o scanner atual
+					html5QrScanner.stop().then(() => {
+						// Alternar o tipo de câmera
+						currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+						console.log(`Alternando para câmera: ${currentCamera}`);
+						
+						// Reiniciar o scanner com a nova câmera
+						const config = { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0 };
+						// Usar o objeto html5QrScanner já existente
+						html5QrScanner.start(
+							{ facingMode: currentCamera },
+							config,
+							onQRCodeSuccess,
+							onQRCodeError
+						).then(() => {
+							console.log("Scanner reiniciado com nova câmera");
+						}).catch((err) => {
+							console.error("Erro ao alternar câmera:", err);
+							errorMessage.textContent = `Erro ao alternar câmera: ${err}`;
+							errorMessage.classList.remove('hidden');
+						});
+					}).catch((err) => {
+						console.error("Erro ao parar scanner para alternar câmera:", err);
+					});
+				}
+			}
+			
 			// Inicializar o aplicativo quando o DOM estiver carregado
 			document.addEventListener('DOMContentLoaded', init);
 		</script>
