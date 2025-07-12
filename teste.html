@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+	<head>
+		<meta charset="utf-8" />
+		<title>Teste QR</title>
+	</head>
+
+	<body>
+		<div id="qr-reader" style="width:300px"></div>
+		<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.7/dist/html5-qrcode.min.js"></script>
+		<script>
+			console.log('Html5Qrcode é', typeof Html5Qrcode);
+			const qr = new Html5Qrcode("qr-reader");
+			qr.start(
+				{ facingMode: "environment" },
+				{ fps: 10, qrbox: 250 },
+				msg => console.log("Lido:", msg),
+				err => console.warn("Erro de scan:", err)
+			).then(() => console.log('Scanner ativo!'))
+				.catch(e => console.error('Falha ao iniciar:', e));
+		</script>
+	</body>
+
+</html>
