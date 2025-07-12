@@ -7,7 +7,7 @@
 		<title>Caça ao QR Code - Gincana Educativa</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-		<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 		<style>
 			/* Importação de fontes */
@@ -392,14 +392,10 @@
 					</div>
 
 					<div class="qr-scanner mb-6" id="scanner-container">
-						<video id="qr-video" width="100%" height="100%" style="display: none;"></video>
-						<canvas id="qr-canvas" width="100%" height="100%" style="display: none;"></canvas>
-						<div class="flex items-center justify-center h-full text-white">
-							<p>Clique no botão abaixo para iniciar a câmera</p>
-						</div>
+						<div id="qr-reader" style="width: 100%;"></div>
 					</div>
 
-					<button onclick="startScanner()"
+					<button id="scanner-button" onclick="startScanner()"
 						class="w-full btn-accent py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition mb-6">
 						Iniciar Scanner
 					</button>
@@ -474,6 +470,7 @@
 			let isGameRunning = false;
 			let scannerActive = false;
 			let currentTeamId = null;
+			let html5QrScanner = null;
 
 			// Elementos do DOM
 			const screens = {
@@ -500,10 +497,6 @@
 			const winnerTeam = document.getElementById('winner-team');
 			const winnerScore = document.getElementById('winner-score');
 			const gameStatus = document.getElementById('game-status');
-
-			// Elementos de vídeo para escaneamento de QR code
-			const video = document.getElementById('qr-video');
-			const canvas = document.getElementById('qr-canvas');
 			const scannerContainer = document.getElementById('scanner-container');
 
 			// Alternância do menu móvel
@@ -533,10 +526,8 @@
 				screens[screenName].classList.remove('hidden');
 
 				// Casos especiais
-				if (screenName === 'hunt') {
-					if (scannerActive) {
-						stopScanner();
-					}
+				if (screenName !== 'hunt' && scannerActive) {
+					stopScanner();
 				}
 
 				// Fechar menu móvel se estiver aberto
@@ -900,69 +891,56 @@
 				}
 
 				errorMessage.classList.add('hidden');
-				scannerActive = true;
+				const scannerButton = document.getElementById('scanner-button');
+				scannerButton.disabled = true;
+				scannerButton.textContent = 'Iniciando scanner...';
 
-				// Mostrar elemento de vídeo
-				video.style.display = 'block';
-				canvas.style.display = 'none'; // Garantir que o canvas esteja oculto inicialmente
-				scannerContainer.querySelector('p').style.display = 'none';
+				// Criar instância do scanner HTML5 QR Code
+				html5QrScanner = new Html5Qrcode("qr-reader");
+				const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
-				// Obter mídia do usuário
-				navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-					.then(function (stream) {
-						video.srcObject = stream;
-						video.play();
-						// Aguardar um momento para garantir que o vídeo esteja pronto
-						video.onloadedmetadata = function() {
-							scanQRCode();
-						};
-					})
-					.catch(function (err) {
-						console.error("Erro ao acessar a câmera: ", err);
-						errorMessage.textContent = 'Não foi possível acessar a câmera. Por favor, verifique as permissões.';
-						errorMessage.classList.remove('hidden');
-						scannerActive = false;
-						video.style.display = 'none';
-						scannerContainer.querySelector('p').style.display = 'block';
-					});
+				html5QrScanner.start(
+					{ facingMode: "environment" },
+					config,
+					onQRCodeSuccess,
+					onQRCodeError
+				).then(() => {
+					scannerActive = true;
+					scannerButton.textContent = 'Scanner ativo';
+					console.log("Scanner iniciado com sucesso");
+				}).catch((err) => {
+					console.error("Erro ao iniciar scanner:", err);
+					errorMessage.textContent = `Erro ao iniciar o scanner: ${err}`;
+					errorMessage.classList.remove('hidden');
+					scannerButton.disabled = false;
+					scannerButton.textContent = 'Iniciar Scanner';
+				});
+			}
+
+			function onQRCodeSuccess(decodedText, decodedResult) {
+				console.log(`QR Code detectado: ${decodedText}`);
+				// Parar o scanner após detectar um código
+				stopScanner();
+				// Processar o código QR
+				processScannedQR(decodedText);
+			}
+
+			function onQRCodeError(error) {
+				// Não fazer nada com erros - isso é chamado frequentemente quando nenhum QR code é encontrado
 			}
 
 			function stopScanner() {
-				scannerActive = false;
-
-				if (video.srcObject) {
-					video.srcObject.getTracks().forEach(track => track.stop());
-					video.srcObject = null;
-				}
-
-				video.style.display = 'none';
-				canvas.style.display = 'none';
-				scannerContainer.querySelector('p').style.display = 'block';
-			}
-
-			function scanQRCode() {
-				if (!scannerActive) return;
-
-				const context = canvas.getContext('2d');
-				canvas.width = video.videoWidth;
-				canvas.height = video.videoHeight;
-				context.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-				try {
-					const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-					const code = jsQR(imageData.data, imageData.width, imageData.height, {
-						inversionAttempts: 'dontInvert',
+				if (html5QrScanner && scannerActive) {
+					html5QrScanner.stop().then(() => {
+						console.log('Scanner parado com sucesso');
+					}).catch((err) => {
+						console.error('Erro ao parar scanner:', err);
 					});
 
-					if (code) {
-						console.log("QR Code detectado!", code.data);
-						processScannedQR(code.data);
-					} else {
-						requestAnimationFrame(scanQRCode);
-					}
-				} catch (e) {
-					console.error("Erro ao escanear QR code: ", e);
-					requestAnimationFrame(scanQRCode);
+					scannerActive = false;
+					const scannerButton = document.getElementById('scanner-button');
+					scannerButton.disabled = false;
+					scannerButton.textContent = 'Iniciar Scanner';
 				}
 			}
 
