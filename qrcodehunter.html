@@ -404,6 +404,10 @@
 								<p class="text-sm text-blue-800">Pontuação:</p>
 								<p id="current-team-score" class="text-xl font-bold text-blue-900">0 pontos</p>
 							</div>
+							<div>
+								<p class="text-sm text-blue-800">Escaneamentos:</p>
+								<p id="current-team-scans" class="text-xl font-bold text-blue-900">0</p>
+							</div>
 						</div>
 					</div>
 
@@ -858,7 +862,8 @@
 					name: name,
 					members: members.split(',').map(m => m.trim()).filter(m => m),
 					score: 0,
-					scannedQRCodes: []
+					scannedQRCodes: [],
+					scanCount: 0 // Contador de escaneamentos
 				});
 
 				// Limpar formulário
@@ -1033,6 +1038,10 @@
 				// Adicionar aos códigos escaneados da equipe
 				team.scannedQRCodes.push(qrId);
 				team.score += qrCode.points;
+				
+				// Incrementar o contador de escaneamentos
+				if (!team.scanCount) team.scanCount = 0;
+				team.scanCount++;
 
 				// Adicionar à lista global de escaneados
 				scannedQRCodes.push({
@@ -1045,6 +1054,9 @@
 				pointsEarned.textContent = `+${qrCode.points} pontos`;
 				totalPoints.textContent = `Total: ${team.score} pontos`;
 				scanResult.classList.remove('hidden');
+				
+				// Atualizar contador de escaneamentos na interface
+				document.getElementById('current-team-scans').textContent = team.scanCount || 0;
 
 				// Atualizar todas as exibições
 				renderQRCodes();
@@ -1070,9 +1082,11 @@
 					const team = teams.find(t => t.id === currentTeamId);
 					currentTeamName.textContent = team.name;
 					currentTeamScore.textContent = `${team.score} pontos`;
+					document.getElementById('current-team-scans').textContent = team.scanCount || 0;
 				} else {
 					currentTeamName.textContent = 'Nenhuma equipe selecionada';
 					currentTeamScore.textContent = '0 pontos';
+					document.getElementById('current-team-scans').textContent = '0';
 				}
 			});
 
@@ -1113,6 +1127,7 @@
                     <div class="text-right">
                         <p class="font-bold ${index === 0 ? 'text-yellow-700' : 'text-gray-700'}">${team.score} pontos</p>
                         <p class="text-xs text-gray-500">${team.scannedQRCodes.length} QR codes</p>
+                        <p class="text-xs text-blue-500">${team.scanCount || 0} escaneamentos</p>
                     </div>
                 `;
 
