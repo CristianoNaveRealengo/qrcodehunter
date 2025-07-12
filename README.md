@@ -52,6 +52,10 @@
 
 Se este projeto estiver publicado com GitHub Pages, você pode acessá-lo diretamente pelo navegador:
 
-[QR Code Hunter]([QR Code Hunter](https://cristianonaverealengo.github.io/qrcodehunter.html)
+
+👉 **[Abrir QR Code Hunter (qrcodehunter.html)](https://cristianomachado.github.io/qrcodehunter/qrcodehunter.html)**
+
+> O jogo funciona totalmente offline após o carregamento da página.
+
 
 
