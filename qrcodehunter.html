@@ -7,6 +7,7 @@
 		<title>Caça ao QR Code - Gincana Educativa</title>
 		<script src="https://cdn.tailwindcss.com"></script>
 		<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 		<style>
 			/* Importação de fontes */
@@ -903,6 +904,7 @@
 
 				// Mostrar elemento de vídeo
 				video.style.display = 'block';
+				canvas.style.display = 'none'; // Garantir que o canvas esteja oculto inicialmente
 				scannerContainer.querySelector('p').style.display = 'none';
 
 				// Obter mídia do usuário
@@ -910,7 +912,10 @@
 					.then(function (stream) {
 						video.srcObject = stream;
 						video.play();
-						scanQRCode();
+						// Aguardar um momento para garantir que o vídeo esteja pronto
+						video.onloadedmetadata = function() {
+							scanQRCode();
+						};
 					})
 					.catch(function (err) {
 						console.error("Erro ao acessar a câmera: ", err);
@@ -931,6 +936,7 @@
 				}
 
 				video.style.display = 'none';
+				canvas.style.display = 'none';
 				scannerContainer.querySelector('p').style.display = 'block';
 			}
 
@@ -949,6 +955,7 @@
 					});
 
 					if (code) {
+						console.log("QR Code detectado!", code.data);
 						processScannedQR(code.data);
 					} else {
 						requestAnimationFrame(scanQRCode);
