@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caça ao QR Code - Gincana Educativa</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.7/dist/html5-qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+
+<body class="min-h-screen bg-gradient-to-br from-purple-50 to-green-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center">
+                        <span class="text-2xl title-font text-purple-600">QR</span>
+                        <span class="text-2xl title-font text-green-500">Hunt</span>
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-6">
+                    <button onclick="showScreen('admin')"
+                        class="py-2 px-4 rounded-lg bg-purple-100 text-purple-700 font-medium hover:bg-purple-200 transition">Admin</button>
+                    <button onclick="showScreen('register')"
+                        class="py-2 px-4 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition">Cadastro</button>
+                    <button onclick="showScreen('hunt')"
+                        class="py-2 px-4 rounded-lg bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition">Caçada</button>
+                    <button onclick="showScreen('ranking')"
+                        class="py-2 px-4 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition">Ranking</button>
+                </div>
+                <div class="md:hidden">
+                    <button id="mobile-menu-button"
+                        class="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div id="mobile-menu" class="hidden md:hidden bg-white px-4 pb-4">
+            <div class="flex flex-col space-y-2">
+                <button onclick="showScreen('admin')"
+                    class="py-2 px-4 rounded-lg bg-purple-100 text-purple-700 font-medium hover:bg-purple-200 transition">Admin</button>
+                <button onclick="showScreen('register')"
+                    class="py-2 px-4 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition">Cadastro</button>
+                <button onclick="showScreen('hunt')"
+                    class="py-2 px-4 rounded-lg bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition">Caçada</button>
+                <button onclick="showScreen('ranking')"
+                    class="py-2 px-4 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition">Ranking</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Admin Screen -->
+        <div id="admin-screen" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+                <h2 class="text-3xl font-bold text-purple-700 mb-6 title-font">Painel do Organizador</h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-purple-50 rounded-lg p-6">
+                        <h3 class="text-xl font-bold text-purple-800 mb-4">Gerar QR Codes</h3>
+
+                        <div class="mb-4">
+                            <label for="qr-count" class="block text-sm font-medium text-gray-700 mb-1">Quantidade de
+                                QR Codes</label>
+                            <input type="number" id="qr-count" min="1" max="100" value="10"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="min-points" class="block text-sm font-medium text-gray-700 mb-1">Pontuação
+                                Mínima</label>
+                            <input type="number" id="min-points" min="100" max="5000" value="100"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+
+                        <div class="mb-6">
+                            <label for="max-points" class="block text-sm font-medium text-gray-700 mb-1">Pontuação
+                                Máxima</label>
+                            <input type="number" id="max-points" min="100" max="5000" value="5000"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+
+                        <button onclick="generateQRCodes()"
+                            class="w-full btn-primary py-3 px-6 rounded-lg font-bold text-lg hover:shadow-lg transition">
+                            Gerar QR Codes
+                        </button>
+                    </div>
+
+                    <div class="bg-green-50 rounded-lg p-6">
+                        <h3 class="text-xl font-bold text-green-800 mb-4">Controle do Jogo</h3>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tempo Restante</label>
+                            <div id="timer-display" class="text-4xl font-bold text-green-700">30:00</div>
+                        </div>
+
+                        <div class="flex space-x-4 mb-6">
+                            <button onclick="startTimer()"
+                                class="flex-1 btn-secondary py-2 px-4 rounded-lg font-medium">
+                                Iniciar
+                            </button>
+                            <button onclick="pauseTimer()"
+                                class="flex-1 btn-accent py-2 px-4 rounded-lg font-medium">
+                                Pausar
+                            </button>
+                            <button onclick="resetTimer()"
+                                class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">
+                                Reiniciar
+                            </button>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="game-duration" class="block text-sm font-medium text-gray-700 mb-1">Duração
+                                (minutos)</label>
+                            <input type="number" id="game-duration" min="1" max="120" value="30"
+                                class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                        </div>
+
+                        <button onclick="downloadAllQRCodes()"
+                            class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-700 hover:shadow-lg transition">
+                            Baixar Todos os QR Codes (PDF)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">QR Codes Gerados</h3>
+                    <div id="qr-codes-container"
+                        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                        <!-- Os códigos QR serão gerados aqui -->
+                    </div>
+                </div>
+
+                <div class="mt-8 bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">QR Codes Escaneados</h3>
+                    <div id="scanned-qr-codes" class="space-y-2">
+                        <!-- Scanned QR codes will be listed here -->
+                        <p class="text-gray-500 italic">Nenhum QR code foi escaneado ainda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Screen -->
+        <div id="register-screen" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold text-green-700 mb-6 title-font text-center">Cadastro de Equipe</h2>
+
+                <div class="mb-6">
+                    <label for="team-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da
+                        Equipe</label>
+                    <input type="text" id="team-name" placeholder="Ex: Os Super Heróis"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg">
+                </div>
+
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Integrantes (separados por
+                        vírgula)</label>
+                    <textarea id="team-members" placeholder="Ex: João, Maria, Pedro, Ana"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"></textarea>
+                </div>
+
+                <button onclick="registerTeam()"
+                    class="w-full btn-secondary py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition pulse">
+                    Registrar Equipe!
+                </button>
+
+                <div id="registered-teams" class="mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Equipes Cadastradas</h3>
+                    <div id="teams-list" class="space-y-2">
+                        <!-- Teams will be listed here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hunt Screen -->
+        <div id="hunt-screen" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 max-w-3xl mx-auto">
+                <h2 class="text-3xl font-bold text-yellow-700 mb-6 title-font text-center">Caçada aos QR Codes!</h2>
+
+                <div class="mb-6 bg-blue-50 rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-blue-800">Equipe:</p>
+                            <p id="current-team-name" class="text-xl font-bold text-blue-900">Nenhuma equipe
+                                selecionada</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-800">Pontuação:</p>
+                            <p id="current-team-score" class="text-xl font-bold text-blue-900">0 pontos</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-blue-800">Escaneamentos:</p>
+                            <p id="current-team-scans" class="text-xl font-bold text-blue-900">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <label for="team-select" class="block text-sm font-medium text-gray-700 mb-1">Selecione sua
+                        equipe</label>
+                    <select id="team-select"
+                        class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-lg">
+                        <option value="">Selecione uma equipe</option>
+                    </select>
+                </div>
+
+                <div class="qr-scanner mb-6" id="scanner-container">
+                    <div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
+                </div>
+
+                <div class="flex flex-col space-y-3 mb-6">
+                    <button id="scanner-button" onclick="startScanner()"
+                        class="w-full btn-accent py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition">
+                        Iniciar Scanner
+                    </button>
+                    <button id="camera-switch" onclick="switchCamera()" class="hidden w-full bg-gray-200 py-2 px-4 rounded-lg font-medium text-gray-700 hover:bg-gray-300 transition">
+                        Alternar Câmera
+                    </button>
+                </div>
+
+                <div id="scan-result" class="hidden bg-green-50 rounded-lg p-6 text-center">
+                    <h3 class="text-2xl font-bold text-green-800 mb-2">QR Code Encontrado!</h3>
+                    <p id="points-earned" class="text-4xl font-bold text-green-600 mb-4">+500 pontos</p>
+                    <p id="total-points" class="text-lg text-gray-700">Total: 1500 pontos</p>
+                </div>
+
+                <div id="score-history" class="mt-6 bg-white rounded-lg shadow-md p-4">
+                    <h3 class="text-xl font-bold text-gray-800 mb-3">Histórico de Pontuação</h3>
+                    <div id="history-list" class="space-y-2 max-h-60 overflow-y-auto">
+                        <p class="text-gray-500 italic text-center py-4">Nenhum QR code escaneado ainda</p>
+                    </div>
+                </div>
+
+                <div id="error-message" class="hidden bg-red-50 rounded-lg p-4 text-red-700 font-medium mt-4">
+                    <!-- Error messages will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Screen -->
+        <div id="ranking-screen" class="hidden">
+            <div class="bg-white rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-blue-700 mb-6 title-font text-center">Ranking ao Vivo</h2>
+
+                <div class="mb-6 bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-blue-800">Tempo Restante:</p>
+                        <p id="ranking-timer" class="text-2xl font-bold text-blue-900">30:00</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-blue-800">Status:</p>
+                        <p id="game-status" class="text-xl font-bold text-blue-900">Em andamento</p>
+                    </div>
+                </div>
+
+                <div id="winner-banner"
+                    class="hidden bg-gradient-to-r from-yellow-400 to-yellow-200 rounded-lg p-6 mb-6 text-center shadow-md">
+                    <h3 class="text-3xl font-bold text-yellow-800 mb-2 title-font">🏆 Temos um vencedor! 🏆</h3>
+                    <p id="winner-team" class="text-4xl font-bold text-yellow-900 mb-4">Os Super Heróis</p>
+                    <p id="winner-score" class="text-2xl text-yellow-800">com 12.500 pontos!</p>
+                </div>
+
+                <div id="teams-ranking" class="space-y-4">
+                    <!-- Teams will be ranked here -->
+                    <div class="flex items-center justify-between bg-gray-100 rounded-lg p-4">
+                        <p class="text-gray-500 italic">Nenhuma equipe registrada ainda.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 py-6 mt-12">
+        <div class="max-w-6xl mx-auto px-4 text-center text-gray-600">
+            <p class="mb-2">QR Hunt - Caçada aos QR Codes Educativos</p>
+            <p class="text-sm">Desenvolvido para eventos escolares e gincanas educativas</p>
+        </div>
+    </footer>
+
+    <script src="js/app.js"></script>
+</body>
+
+</html>

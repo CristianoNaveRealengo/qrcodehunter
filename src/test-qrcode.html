@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Leitor QR Code</title>
+    <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.7/dist/html5-qrcode.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #4F46E5;
+            text-align: center;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        #qr-reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        #qr-reader-results {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f3f4f6;
+            border-radius: 8px;
+            min-height: 100px;
+        }
+        
+        .result-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background-color: #e0f2fe;
+            border-radius: 4px;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background-color: #4F46E5;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        button:hover {
+            background-color: #4338CA;
+        }
+        
+        button:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .error {
+            color: #ef4444;
+            padding: 10px;
+            background-color: #fee2e2;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .success {
+            color: #10b981;
+            padding: 10px;
+            background-color: #d1fae5;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .camera-info {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f3f4f6;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Teste de Leitor QR Code</h1>
+    
+    <div class="container">
+        <div class="controls">
+            <button id="start-button">Iniciar Scanner</button>
+            <button id="stop-button" disabled>Parar Scanner</button>
+            <button id="switch-camera" disabled>Alternar Câmera</button>
+        </div>
+        
+        <div id="qr-reader"></div>
+        
+        <div class="status" id="status">Scanner inativo</div>
+        
+        <div class="error" id="error-message"></div>
+        <div class="success" id="success-message"></div>
+        
+        <div class="camera-info" id="camera-info">
+            <h3>Informações da Câmera:</h3>
+            <div id="camera-details">Aguardando inicialização...</div>
+        </div>
+        
+        <div id="qr-reader-results">
+            <h3>Resultados:</h3>
+            <div id="results-list"></div>
+        </div>
+    </div>
+    
+    <script>
+        // Elementos do DOM
+        const startButton = document.getElementById('start-button');
+        const stopButton = document.getElementById('stop-button');
+        const switchCameraButton = document.getElementById('switch-camera');
+        const statusElement = document.getElementById('status');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        const cameraDetails = document.getElementById('camera-details');
+        const resultsList = document.getElementById('results-list');
+        
+        // Variáveis globais
+        let html5QrScanner = null;
+        let scannerActive = false;
+        let currentCamera = 'environment'; // 'environment' para câmera traseira, 'user' para frontal
+        let cameraList = []; // Lista de câmeras disponíveis
+        
+        // Iniciar o scanner
+        async function startScanner() {
+            try {
+                // Limpar mensagens anteriores
+                errorMessage.style.display = 'none';
+                successMessage.style.display = 'none';
+                
+                // Verificar se o navegador suporta a API de câmera
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    throw new Error('Seu navegador não suporta acesso à câmera. Por favor, use um navegador mais recente.');
+                }
+                
+                // Atualizar status
+                statusElement.textContent = 'Inicializando scanner...';
+                startButton.disabled = true;
+                
+                // Tentar obter a lista de câmeras disponíveis
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    cameraList = devices.filter(device => device.kind === 'videoinput');
+                    
+                    // Exibir informações das câmeras
+                    if (cameraList.length > 0) {
+                        let cameraInfo = `<p>Câmeras encontradas: ${cameraList.length}</p><ul>`;
+                        cameraList.forEach((camera, index) => {
+                            cameraInfo += `<li>Câmera ${index + 1}: ${camera.label || 'Sem nome'}</li>`;
+                        });
+                        cameraInfo += '</ul>';
+                        cameraDetails.innerHTML = cameraInfo;
+                    } else {
+                        cameraDetails.innerHTML = '<p>Nenhuma câmera encontrada</p>';
+                    }
+                    
+                    if (cameraList.length === 0) {
+                        throw new Error('Nenhuma câmera encontrada no dispositivo.');
+                    }
+                    
+                    // Habilitar botão de alternar câmera se houver mais de uma
+                    if (cameraList.length > 1) {
+                        switchCameraButton.disabled = false;
+                    }
+                } catch (err) {
+                    console.warn('Não foi possível enumerar dispositivos:', err);
+                    cameraDetails.innerHTML = '<p>Não foi possível listar câmeras: ' + err.message + '</p>';
+                    // Continuar mesmo sem a lista de câmeras
+                }
+                
+                // Criar instância do scanner HTML5 QR Code
+                if (html5QrScanner) {
+                    await html5QrScanner.stop();
+                }
+                
+                html5QrScanner = new Html5Qrcode("qr-reader");
+                
+                // Configurações do scanner
+                const config = { 
+                    fps: 10, 
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0,
+                    formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                };
+                
+                // Iniciar o scanner com a câmera selecionada
+                await html5QrScanner.start(
+                    { facingMode: currentCamera },
+                    config,
+                    onQRCodeSuccess,
+                    onQRCodeError
+                );
+                
+                scannerActive = true;
+                statusElement.textContent = 'Scanner ativo - Aponte para um QR Code';
+                startButton.disabled = true;
+                stopButton.disabled = false;
+                
+                // Mostrar mensagem de sucesso
+                successMessage.textContent = 'Scanner iniciado com sucesso!';
+                successMessage.style.display = 'block';
+                
+                console.log("Scanner iniciado com sucesso");
+                
+            } catch (err) {
+                console.error("Erro ao iniciar scanner:", err);
+                errorMessage.textContent = `Erro ao iniciar o scanner: ${err.message || err}`;
+                errorMessage.style.display = 'block';
+                statusElement.textContent = 'Falha ao iniciar scanner';
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                switchCameraButton.disabled = true;
+            }
+        }
+        
+        // Parar o scanner
+        async function stopScanner() {
+            if (html5QrScanner && scannerActive) {
+                try {
+                    await html5QrScanner.stop();
+                    console.log('Scanner parado com sucesso');
+                    
+                    scannerActive = false;
+                    statusElement.textContent = 'Scanner inativo';
+                    startButton.disabled = false;
+                    stopButton.disabled = true;
+                    switchCameraButton.disabled = true;
+                    
+                    // Mostrar mensagem de sucesso
+                    successMessage.textContent = 'Scanner parado com sucesso!';
+                    successMessage.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                    
+                } catch (err) {
+                    console.error('Erro ao parar scanner:', err);
+                    errorMessage.textContent = `Erro ao parar scanner: ${err.message || err}`;
+                    errorMessage.style.display = 'block';
+                }
+            }
+        }
+        
+        // Alternar câmera
+        async function switchCamera() {
+            if (scannerActive && html5QrScanner) {
+                try {
+                    // Parar o scanner atual
+                    await html5QrScanner.stop();
+                    
+                    // Alternar o tipo de câmera
+                    currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+                    statusElement.textContent = `Alternando para câmera: ${currentCamera === 'environment' ? 'traseira' : 'frontal'}`;
+                    
+                    // Configurações do scanner
+                    const config = { 
+                        fps: 10, 
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0,
+                        formatsToSupport: [ Html5QrcodeSupportedFormats.QR_CODE ]
+                    };
+                    
+                    // Reiniciar o scanner com a nova câmera
+                    await html5QrScanner.start(
+                        { facingMode: currentCamera },
+                        config,
+                        onQRCodeSuccess,
+                        onQRCodeError
+                    );
+                    
+                    statusElement.textContent = `Scanner ativo - Usando câmera ${currentCamera === 'environment' ? 'traseira' : 'frontal'}`;
+                    console.log("Scanner reiniciado com nova câmera");
+                    
+                    // Mostrar mensagem de sucesso
+                    successMessage.textContent = `Câmera alternada para ${currentCamera === 'environment' ? 'traseira' : 'frontal'}`;
+                    successMessage.style.display = 'block';
+                    errorMessage.style.display = 'none';
+                    
+                } catch (err) {
+                    console.error("Erro ao alternar câmera:", err);
+                    errorMessage.textContent = `Erro ao alternar câmera: ${err.message || err}`;
+                    errorMessage.style.display = 'block';
+                    
+                    // Tentar voltar para a câmera anterior em caso de erro
+                    try {
+                        currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+                        statusElement.textContent = 'Tentando voltar para câmera anterior...';
+                        
+                        const config = { 
+                            fps: 10, 
+                            qrbox: { width: 250, height: 250 },
+                            aspectRatio: 1.0 
+                        };
+                        
+                        await html5QrScanner.start(
+                            { facingMode: currentCamera },
+                            config,
+                            onQRCodeSuccess,
+                            onQRCodeError
+                        );
+                        
+                        statusElement.textContent = 'Scanner ativo - Voltou para câmera anterior';
+                        
+                    } catch (fallbackErr) {
+                        console.error("Erro ao voltar para câmera anterior:", fallbackErr);
+                        errorMessage.textContent = `Falha completa no scanner: ${fallbackErr.message || fallbackErr}`;
+                        // Se falhar ao voltar, parar o scanner completamente
+                        stopScanner();
+                    }
+                }
+            }
+        }
+        
+        // Callback de sucesso ao ler QR code
+        function onQRCodeSuccess(decodedText, decodedResult) {
+            console.log(`QR Code detectado: ${decodedText}`);
+            
+            // Adicionar resultado à lista
+            const resultItem = document.createElement('div');
+            resultItem.className = 'result-item';
+            resultItem.innerHTML = `
+                <p><strong>Conteúdo:</strong> ${decodedText}</p>
+                <p><small>Detectado em: ${new Date().toLocaleTimeString()}</small></p>
+            `;
+            resultsList.prepend(resultItem);
+            
+            // Mostrar mensagem de sucesso
+            successMessage.textContent = 'QR Code lido com sucesso!';
+            successMessage.style.display = 'block';
+            errorMessage.style.display = 'none';
+            
+            // Não parar o scanner após leitura para permitir múltiplas leituras
+        }
+        
+        // Callback de erro ao ler QR code
+        function onQRCodeError(error) {
+            // Não fazer nada com erros - isso é chamado frequentemente quando nenhum QR code é encontrado
+            // console.warn("Erro de scan (normal):", error);
+        }
+        
+        // Adicionar event listeners aos botões
+        startButton.addEventListener('click', startScanner);
+        stopButton.addEventListener('click', stopScanner);
+        switchCameraButton.addEventListener('click', switchCamera);
+        
+        // Função para testar o scanner de QR code
+        async function testQRScanner() {
+            try {
+                // Verificar se o navegador suporta a API de câmera
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    cameraDetails.innerHTML = '<p class="error">Seu navegador não suporta acesso à câmera</p>';
+                    return false;
+                }
+                
+                // Tentar acessar a câmera
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                
+                // Parar o stream imediatamente após o teste
+                stream.getTracks().forEach(track => track.stop());
+                
+                cameraDetails.innerHTML = '<p class="success">Teste de câmera bem-sucedido! Câmera disponível.</p>';
+                console.log('Teste de câmera bem-sucedido');
+                return true;
+            } catch (err) {
+                cameraDetails.innerHTML = `<p class="error">Erro no teste de câmera: ${err.message || err}</p>`;
+                console.error('Erro no teste de câmera:', err);
+                return false;
+            }
+        }
+        
+        // Executar teste de câmera ao carregar
+        document.addEventListener('DOMContentLoaded', () => {
+            testQRScanner().then(result => {
+                console.log('Resultado do teste de câmera:', result ? 'Sucesso' : 'Falha');
+            });
+        });
+    </script>
+</body>
+</html>

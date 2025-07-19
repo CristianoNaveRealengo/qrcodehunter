@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Caça ao QR Code - Gincana Educativa</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.2.7/dist/html5-qrcode.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+		<style>
+			/* Importação de fontes */
+			@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+			/* Variáveis de cores */
+			:root {
+				--primary: #4F46E5;
+				--secondary: #10B981;
+				--accent: #F59E0B;
+				--dark: #1F2937;
+				--light: #F3F4F6;
+			}
+
+			/* Estilo do corpo da página */
+			body {
+				font-family: 'Nunito', sans-serif;
+				background-color: #F9FAFB;
+			}
+			
+			/* Estilos para o scanner de QR code */
+			#qr-reader {
+				box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+			}
+			
+			#qr-reader__dashboard {
+				padding: 8px;
+				background-color: #f3f4f6;
+			}
+			
+			#qr-reader__scan_region {
+				background-color: #000;
+				min-height: 300px;
+			}
+			
+			#qr-reader__scan_region > img {
+				opacity: 0.6;
+			}
+			
+			#qr-reader__status {
+				color: #4F46E5;
+				font-weight: bold;
+				padding: 8px 0;
+			}
+
+			/* Estilo do banner de vencedor */
+			.winner-banner {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				background-color: #10B981;
+				color: white;
+				padding: 10px;
+				text-align: center;
+				font-weight: bold;
+				z-index: 1000;
+				display: none;
+			}
+
+			/* Estilo da fonte do título */
+			.title-font {
+				font-family: 'Fredoka One', cursive;
+			}
+
+			/* Estilo do botão primário */
+			.btn-primary {
+				background-color: var(--primary);
+				color: white;
+			}
+
+			.btn-primary:hover {
+				background-color: #4338CA;
+			}
+
+			/* Estilo do botão secundário */
+			.btn-secondary {
+				background-color: var(--secondary);
+				color: white;
+			}
+
+			.btn-secondary:hover {
+				background-color: #0D9488;
+			}
+
+			/* Estilo do botão de destaque */
+			.btn-accent {
+				background-color: var(--accent);
+				color: white;
+			}
+
+			.btn-accent:hover {
+				background-color: #D97706;
+			}
+
+			/* Animação de pulso */
+			.pulse {
+				animation: pulse 2s infinite;
+			}
+
+			@keyframes pulse {
+				0% {
+					transform: scale(1);
+				}
+
+				50% {
+					transform: scale(1.05);
+				}
+
+				100% {
+					transform: scale(1);
+				}
+			}
+
+			/* Animação de salto */
+			.bounce {
+				animation: bounce 2s infinite;
+			}
+
+			@keyframes bounce {
+
+				0%,
+				100% {
+					transform: translateY(0);
+				}
+
+				50% {
+					transform: translateY(-10px);
+				}
+			}
+
+			/* Estilo do scanner de QR code */
+			.qr-scanner {
+				width: 100%;
+				max-width: 500px;
+				height: 300px;
+				background-color: #000;
+				margin: 0 auto;
+				position: relative;
+				overflow: hidden;
+				border-radius: 12px;
+			}
+
+			.qr-scanner::before {
+				content: '';
+				position: absolute;
+				top: 0;
+				left: 0;
+				right: 0;
+				bottom: 0;
+				border: 2px dashed rgba(255, 255, 255, 0.5);
+				animation: scanner 4s linear infinite;
+				pointer-events: none;
+			}
+
+			@keyframes scanner {
+				0% {
+					transform: translateY(-100%);
+				}
+
+				100% {
+					transform: translateY(100%);
+				}
+			}
+
+			/* Estilo do emblema de líder */
+			.leader-badge {
+				position: absolute;
+				top: -10px;
+				right: -10px;
+				background-color: #F59E0B;
+				color: white;
+				border-radius: 50%;
+				width: 24px;
+				height: 24px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-weight: bold;
+			}
+
+			/* Estilo do contêiner de QR codes */
+			.qr-code-container {
+				display: flex;
+				flex-wrap: wrap;
+				gap: 10px;
+				justify-content: center;
+			}
+
+			/* Estilo do item de QR code */
+			.qr-code-item {
+				background-color: white;
+				padding: 10px;
+				border-radius: 8px;
+				box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+				text-align: center;
+				width: 120px;
+			}
+
+			/* Estilo do canvas do QR code */
+			.qr-code-item canvas {
+				width: 100px;
+				height: 100px;
+			}
+		</style>
+	</head>
+
+	<body class="min-h-screen bg-gradient-to-br from-purple-50 to-green-50">
+		<!-- Navigation -->
+		<nav class="bg-white shadow-lg">
+			<div class="max-w-6xl mx-auto px-4">
+				<div class="flex justify-between items-center py-4">
+					<div class="flex items-center space-x-4">
+						<div class="flex items-center">
+							<span class="text-2xl title-font text-purple-600">QR</span>
+							<span class="text-2xl title-font text-green-500">Hunt</span>
+						</div>
+					</div>
+					<div class="hidden md:flex items-center space-x-6">
+						<button onclick="showScreen('admin')"
+							class="py-2 px-4 rounded-lg bg-purple-100 text-purple-700 font-medium hover:bg-purple-200 transition">Admin</button>
+						<button onclick="showScreen('register')"
+							class="py-2 px-4 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition">Cadastro</button>
+						<button onclick="showScreen('hunt')"
+							class="py-2 px-4 rounded-lg bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition">Caçada</button>
+						<button onclick="showScreen('ranking')"
+							class="py-2 px-4 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition">Ranking</button>
+					</div>
+					<div class="md:hidden">
+						<button id="mobile-menu-button"
+							class="p-2 rounded-md text-gray-700 hover:bg-gray-100 focus:outline-none">
+							<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+								xmlns="http://www.w3.org/2000/svg">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+									d="M4 6h16M4 12h16M4 18h16"></path>
+							</svg>
+						</button>
+					</div>
+				</div>
+			</div>
+			<div id="mobile-menu" class="hidden md:hidden bg-white px-4 pb-4">
+				<div class="flex flex-col space-y-2">
+					<button onclick="showScreen('admin')"
+						class="py-2 px-4 rounded-lg bg-purple-100 text-purple-700 font-medium hover:bg-purple-200 transition">Admin</button>
+					<button onclick="showScreen('register')"
+						class="py-2 px-4 rounded-lg bg-green-100 text-green-700 font-medium hover:bg-green-200 transition">Cadastro</button>
+					<button onclick="showScreen('hunt')"
+						class="py-2 px-4 rounded-lg bg-yellow-100 text-yellow-700 font-medium hover:bg-yellow-200 transition">Caçada</button>
+					<button onclick="showScreen('ranking')"
+						class="py-2 px-4 rounded-lg bg-blue-100 text-blue-700 font-medium hover:bg-blue-200 transition">Ranking</button>
+				</div>
+			</div>
+		</nav>
+
+		<!-- Main Content -->
+		<main class="max-w-6xl mx-auto px-4 py-8">
+			<!-- Admin Screen -->
+			<div id="admin-screen" class="hidden">
+				<div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+					<h2 class="text-3xl font-bold text-purple-700 mb-6 title-font">Painel do Organizador</h2>
+
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<div class="bg-purple-50 rounded-lg p-6">
+							<h3 class="text-xl font-bold text-purple-800 mb-4">Gerar QR Codes</h3>
+
+							<div class="mb-4">
+								<label for="qr-count" class="block text-sm font-medium text-gray-700 mb-1">Quantidade de
+									QR Codes</label>
+								<input type="number" id="qr-count" min="1" max="100" value="10"
+									class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+							</div>
+
+							<div class="mb-4">
+								<label for="min-points" class="block text-sm font-medium text-gray-700 mb-1">Pontuação
+									Mínima</label>
+								<input type="number" id="min-points" min="100" max="5000" value="100"
+									class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+							</div>
+
+							<div class="mb-6">
+								<label for="max-points" class="block text-sm font-medium text-gray-700 mb-1">Pontuação
+									Máxima</label>
+								<input type="number" id="max-points" min="100" max="5000" value="5000"
+									class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+							</div>
+
+							<button onclick="generateQRCodes()"
+								class="w-full btn-primary py-3 px-6 rounded-lg font-bold text-lg hover:shadow-lg transition">
+								Gerar QR Codes
+							</button>
+						</div>
+
+						<div class="bg-green-50 rounded-lg p-6">
+							<h3 class="text-xl font-bold text-green-800 mb-4">Controle do Jogo</h3>
+
+							<div class="mb-4">
+								<label class="block text-sm font-medium text-gray-700 mb-1">Tempo Restante</label>
+								<div id="timer-display" class="text-4xl font-bold text-green-700">30:00</div>
+							</div>
+
+							<div class="flex space-x-4 mb-6">
+								<button onclick="startTimer()"
+									class="flex-1 btn-secondary py-2 px-4 rounded-lg font-medium">
+									Iniciar
+								</button>
+								<button onclick="pauseTimer()"
+									class="flex-1 btn-accent py-2 px-4 rounded-lg font-medium">
+									Pausar
+								</button>
+								<button onclick="resetTimer()"
+									class="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium hover:bg-gray-300">
+									Reiniciar
+								</button>
+							</div>
+
+							<div class="mb-4">
+								<label for="game-duration" class="block text-sm font-medium text-gray-700 mb-1">Duração
+									(minutos)</label>
+								<input type="number" id="game-duration" min="1" max="120" value="30"
+									class="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500">
+							</div>
+
+							<button onclick="downloadAllQRCodes()"
+								class="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-bold text-lg hover:bg-blue-700 hover:shadow-lg transition">
+								Baixar Todos os QR Codes (PDF)
+							</button>
+						</div>
+					</div>
+
+					<div class="mt-8 bg-white rounded-lg shadow-md p-6">
+						<h3 class="text-xl font-bold text-gray-800 mb-4">QR Codes Gerados</h3>
+						<div id="qr-codes-container"
+							class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+							<!-- Os códigos QR serão gerados aqu -->
+						</div>
+					</div>
+
+					<div class="mt-8 bg-white rounded-lg shadow-md p-6">
+						<h3 class="text-xl font-bold text-gray-800 mb-4">QR Codes Escaneados</h3>
+						<div id="scanned-qr-codes" class="space-y-2">
+							<!-- Scanned QR codes will be listed here -->
+							<p class="text-gray-500 italic">Nenhum QR code foi escaneado ainda.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Register Screen -->
+			<div id="register-screen" class="hidden">
+				<div class="bg-white rounded-xl shadow-lg p-6 max-w-2xl mx-auto">
+					<h2 class="text-3xl font-bold text-green-700 mb-6 title-font text-center">Cadastro de Equipe</h2>
+
+					<div class="mb-6">
+						<label for="team-name" class="block text-sm font-medium text-gray-700 mb-1">Nome da
+							Equipe</label>
+						<input type="text" id="team-name" placeholder="Ex: Os Super Heróis"
+							class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg">
+					</div>
+
+					<div class="mb-6">
+						<label class="block text-sm font-medium text-gray-700 mb-1">Integrantes (separados por
+							vírgula)</label>
+						<textarea id="team-members" placeholder="Ex: João, Maria, Pedro, Ana"
+							class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-green-500 focus:border-green-500 text-lg"></textarea>
+					</div>
+
+					<button onclick="registerTeam()"
+						class="w-full btn-secondary py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition pulse">
+						Registrar Equipe!
+					</button>
+
+					<div id="registered-teams" class="mt-8">
+						<h3 class="text-xl font-bold text-gray-800 mb-4">Equipes Cadastradas</h3>
+						<div id="teams-list" class="space-y-2">
+							<!-- Teams will be listed here -->
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<!-- Hunt Screen -->
+			<div id="hunt-screen" class="hidden">
+				<div class="bg-white rounded-xl shadow-lg p-6 max-w-3xl mx-auto">
+					<h2 class="text-3xl font-bold text-yellow-700 mb-6 title-font text-center">Caçada aos QR Codes!</h2>
+
+					<div class="mb-6 bg-blue-50 rounded-lg p-4">
+						<div class="flex items-center justify-between">
+							<div>
+								<p class="text-sm text-blue-800">Equipe:</p>
+								<p id="current-team-name" class="text-xl font-bold text-blue-900">Nenhuma equipe
+									selecionada</p>
+							</div>
+							<div>
+								<p class="text-sm text-blue-800">Pontuação:</p>
+								<p id="current-team-score" class="text-xl font-bold text-blue-900">0 pontos</p>
+							</div>
+							<div>
+								<p class="text-sm text-blue-800">Escaneamentos:</p>
+								<p id="current-team-scans" class="text-xl font-bold text-blue-900">0</p>
+							</div>
+						</div>
+					</div>
+
+					<div class="mb-6">
+						<label for="team-select" class="block text-sm font-medium text-gray-700 mb-1">Selecione sua
+							equipe</label>
+						<select id="team-select"
+							class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-lg">
+							<option value="">Selecione uma equipe</option>
+						</select>
+					</div>
+
+					<div class="qr-scanner mb-6" id="scanner-container">
+						<div id="qr-reader" style="width: 100%; max-width: 500px; margin: 0 auto; border-radius: 8px; overflow: hidden;"></div>
+					</div>
+
+					<div class="flex flex-col space-y-3 mb-6">
+						<button id="scanner-button" onclick="startScanner()"
+							class="w-full btn-accent py-4 px-6 rounded-lg font-bold text-xl hover:shadow-lg transition">
+							Iniciar Scanner
+						</button>
+						<button id="camera-switch" onclick="switchCamera()" class="hidden w-full bg-gray-200 py-2 px-4 rounded-lg font-medium text-gray-700 hover:bg-gray-300 transition">
+							Alternar Câmera
+						</button>
+					</div>
+
+					<div id="scan-result" class="hidden bg-green-50 rounded-lg p-6 text-center">
+						<h3 class="text-2xl font-bold text-green-800 mb-2">QR Code Encontrado!</h3>
+						<p id="points-earned" class="text-4xl font-bold text-green-600 mb-4">+500 pontos</p>
+						<p id="total-points" class="text-lg text-gray-700">Total: 1500 pontos</p>
+					</div>
+
+					<div id="score-history" class="mt-6 bg-white rounded-lg shadow-md p-4">
+						<h3 class="text-xl font-bold text-gray-800 mb-3">Histórico de Pontuação</h3>
+						<div id="history-list" class="space-y-2 max-h-60 overflow-y-auto">
+							<p class="text-gray-500 italic text-center py-4">Nenhum QR code escaneado ainda</p>
+						</div>
+					</div>
+
+					<div id="error-message" class="hidden bg-red-50 rounded-lg p-4 text-red-700 font-medium mt-4">
+						<!-- Error messages will appear here -->
+					</div>
+				</div>
+			</div>
+
+			<!-- Ranking Screen -->
+			<div id="ranking-screen" class="hidden">
+				<div class="bg-white rounded-xl shadow-lg p-6 max-w-4xl mx-auto">
+					<h2 class="text-3xl font-bold text-blue-700 mb-6 title-font text-center">Ranking ao Vivo</h2>
+
+					<div class="mb-6 bg-blue-50 rounded-lg p-4 flex items-center justify-between">
+						<div>
+							<p class="text-sm text-blue-800">Tempo Restante:</p>
+							<p id="ranking-timer" class="text-2xl font-bold text-blue-900">30:00</p>
+						</div>
+						<div>
+							<p class="text-sm text-blue-800">Status:</p>
+							<p id="game-status" class="text-xl font-bold text-blue-900">Em andamento</p>
+						</div>
+					</div>
+
+					<div id="winner-banner"
+						class="hidden bg-gradient-to-r from-yellow-400 to-yellow-200 rounded-lg p-6 mb-6 text-center shadow-md">
+						<h3 class="text-3xl font-bold text-yellow-800 mb-2 title-font">🏆 Temos um vencedor! 🏆</h3>
+						<p id="winner-team" class="text-4xl font-bold text-yellow-900 mb-4">Os Super Heróis</p>
+						<p id="winner-score" class="text-2xl text-yellow-800">com 12.500 pontos!</p>
+					</div>
+
+					<div id="teams-ranking" class="space-y-4">
+						<!-- Teams will be ranked here -->
+						<div class="flex items-center justify-between bg-gray-100 rounded-lg p-4">
+							<p class="text-gray-500 italic">Nenhuma equipe registrada ainda.</p>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+
+		<!-- Footer -->
+		<footer class="bg-white border-t border-gray-200 py-6 mt-12">
+			<div class="max-w-6xl mx-auto px-4 text-center text-gray-600">
+				<p class="mb-2">QR Hunt - Caçada aos QR Codes Educativos</p>
+				<p class="text-sm">Desenvolvido para eventos escolares e gincanas educativas</p>
+			</div>
+		</footer>
+
+		<script>
+			// Variáveis globais
+			let qrCodes = [];
+			let teams = [];
+			let scannedQRCodes = [];
+			let timerInterval;
+			let timeLeft = 30 * 60; // 30 minutos em segundos
+			let isGameRunning = false;
+			let scannerActive = false;
+			let currentTeamId = null;
+			let html5QrScanner = null;
+			let currentCamera = 'environment'; // 'environment' para câmera traseira, 'user' para frontal
+
+			// Elementos do DOM
+			const screens = {
+				admin: document.getElementById('admin-screen'),
+				register: document.getElementById('register-screen'),
+				hunt: document.getElementById('hunt-screen'),
+				ranking: document.getElementById('ranking-screen')
+			};
+
+			const timerDisplay = document.getElementById('timer-display');
+			const rankingTimer = document.getElementById('ranking-timer');
+			const qrCodesContainer = document.getElementById('qr-codes-container');
+			const scannedQRCodesList = document.getElementById('scanned-qr-codes');
+			const teamsList = document.getElementById('teams-list');
+			const teamSelect = document.getElementById('team-select');
+			const currentTeamName = document.getElementById('current-team-name');
+			const currentTeamScore = document.getElementById('current-team-score');
+			const scanResult = document.getElementById('scan-result');
+			const pointsEarned = document.getElementById('points-earned');
+			const totalPoints = document.getElementById('total-points');
+			const errorMessage = document.getElementById('error-message');
+			const teamsRanking = document.getElementById('teams-ranking');
+			const winnerBanner = document.getElementById('winner-banner');
+			const winnerTeam = document.getElementById('winner-team');
+			const winnerScore = document.getElementById('winner-score');
+			const gameStatus = document.getElementById('game-status');
+			const scannerContainer = document.getElementById('scanner-container');
+
+			// Alternância do menu móvel
+			document.getElementById('mobile-menu-button').addEventListener('click', function () {
+				document.getElementById('mobile-menu').classList.toggle('hidden');
+			});
+
+			// Inicializar o aplicativo
+			function init() {
+				loadData();
+				updateTimerDisplay();
+				updateRankingTimer();
+				showScreen('admin');
+				populateTeamSelect();
+				updateTeamsList();
+				updateRanking();
+			}
+
+			// Mostrar tela específica e esconder as outras
+			function showScreen(screenName) {
+				// Esconder todas as telas
+				Object.values(screens).forEach(screen => {
+					screen.classList.add('hidden');
+				});
+
+				// Mostrar a tela selecionada
+				screens[screenName].classList.remove('hidden');
+
+				// Casos especiais
+				if (screenName !== 'hunt' && scannerActive) {
+					stopScanner();
+				}
+
+				// Fechar menu móvel se estiver aberto
+				document.getElementById('mobile-menu').classList.add('hidden');
+			}
+
+			// Carregar dados do localStorage
+			function loadData() {
+				const savedQRCodes = localStorage.getItem('qrHunt_qrCodes');
+				const savedTeams = localStorage.getItem('qrHunt_teams');
+				const savedScanned = localStorage.getItem('qrHunt_scanned');
+				const savedTimeLeft = localStorage.getItem('qrHunt_timeLeft');
+				const savedGameRunning = localStorage.getItem('qrHunt_isGameRunning');
+
+				if (savedQRCodes) qrCodes = JSON.parse(savedQRCodes);
+				if (savedTeams) teams = JSON.parse(savedTeams);
+				if (savedScanned) scannedQRCodes = JSON.parse(savedScanned);
+				if (savedTimeLeft) timeLeft = parseInt(savedTimeLeft);
+				if (savedGameRunning) isGameRunning = savedGameRunning === 'true';
+
+				// Atualizar a interface com base nos dados carregados
+				if (qrCodes.length > 0) {
+					renderQRCodes();
+				}
+
+				if (scannedQRCodes.length > 0) {
+					renderScannedQRCodes();
+				}
+
+				if (isGameRunning) {
+					startTimer();
+				}
+			}
+
+			// Salvar dados no localStorage
+			function saveData() {
+				localStorage.setItem('qrHunt_qrCodes', JSON.stringify(qrCodes));
+				localStorage.setItem('qrHunt_teams', JSON.stringify(teams));
+				localStorage.setItem('qrHunt_scanned', JSON.stringify(scannedQRCodes));
+				localStorage.setItem('qrHunt_timeLeft', timeLeft.toString());
+				localStorage.setItem('qrHunt_isGameRunning', isGameRunning.toString());
+			}
+
+			// Gerar QR Codes
+			function generateQRCodes() {
+				const count = parseInt(document.getElementById('qr-count').value) || 10;
+				const minPoints = parseInt(document.getElementById('min-points').value) || 100;
+				const maxPoints = parseInt(document.getElementById('max-points').value) || 5000;
+
+				qrCodes = [];
+
+				for (let i = 0; i < count; i++) {
+					const points = Math.floor(Math.random() * (maxPoints - minPoints + 1)) + minPoints;
+					const id = 'qr_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+					qrCodes.push({
+						id: id,
+						points: points,
+						scanned: false,
+						scannedBy: null,
+						scannedAt: null
+					});
+				}
+
+				renderQRCodes();
+				saveData();
+			}
+
+			// Renderizar QR Codes
+			function renderQRCodes() {
+				qrCodesContainer.innerHTML = '';
+
+				qrCodes.forEach(qr => {
+					const qrElement = document.createElement('div');
+					qrElement.className = 'bg-white p-3 rounded-lg shadow-md border-2 ' + (qr.scanned ? 'border-green-400' : 'border-gray-200');
+
+					const qrCanvas = document.createElement('canvas');
+					qrCanvas.className = 'w-full h-auto';
+
+					qrElement.appendChild(qrCanvas);
+
+					const statusText = document.createElement('p');
+					statusText.className = 'text-center mt-2 text-sm font-medium ' + (qr.scanned ? 'text-green-600' : 'text-gray-500');
+					statusText.textContent = qr.scanned ? 'Escaneado' : 'Disponível';
+
+					qrElement.appendChild(statusText);
+
+					qrCodesContainer.appendChild(qrElement);
+
+					// Gerar código QR
+					QRCode.toCanvas(qrCanvas, qr.id, {
+						width: 200,
+						margin: 1,
+						color: {
+							dark: '#000000',
+							light: '#ffffff'
+						}
+					}, function (error) {
+						if (error) console.error(error);
+					});
+				});
+			}
+
+			// Renderizar QR Codes escaneados
+			function renderScannedQRCodes() {
+				if (scannedQRCodes.length === 0) {
+					scannedQRCodesList.innerHTML = '<p class="text-gray-500 italic">Nenhum QR code foi escaneado ainda.</p>';
+					return;
+				}
+
+				scannedQRCodesList.innerHTML = '';
+
+				scannedQRCodes.forEach(scan => {
+					const qr = qrCodes.find(q => q.id === scan.qrId);
+					const team = teams.find(t => t.id === scan.teamId);
+
+					if (qr && team) {
+						const scanElement = document.createElement('div');
+						scanElement.className = 'bg-gray-50 p-3 rounded-lg border border-gray-200';
+
+						scanElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">${team.name}</p>
+                                <p class="text-sm text-gray-600">${new Date(scan.scannedAt).toLocaleString()}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+${qr.points} pontos</p>
+                                <p class="text-sm text-gray-600">QR Code: ${qr.id.substr(0, 8)}...</p>
+                            </div>
+                        </div>
+                    `;
+
+						scannedQRCodesList.appendChild(scanElement);
+					}
+				});
+			}
+
+			// Funções do temporizador
+			function startTimer() {
+				if (timerInterval) clearInterval(timerInterval);
+
+				isGameRunning = true;
+				saveData();
+
+				timerInterval = setInterval(() => {
+					timeLeft--;
+					updateTimerDisplay();
+					updateRankingTimer();
+
+					if (timeLeft <= 0) {
+						endGame();
+					}
+				}, 1000);
+			}
+
+			function pauseTimer() {
+				clearInterval(timerInterval);
+				isGameRunning = false;
+				saveData();
+			}
+
+			function resetTimer() {
+				clearInterval(timerInterval);
+				timeLeft = parseInt(document.getElementById('game-duration').value) * 60 || 30 * 60;
+				isGameRunning = false;
+				updateTimerDisplay();
+				updateRankingTimer();
+				saveData();
+
+				// Esconder banner do vencedor se estiver visível
+				winnerBanner.classList.add('hidden');
+				gameStatus.textContent = 'Em andamento';
+			}
+
+			function updateTimerDisplay() {
+				const minutes = Math.floor(timeLeft / 60);
+				const seconds = timeLeft % 60;
+
+				timerDisplay.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+				rankingTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+			}
+
+			function updateRankingTimer() {
+				const minutes = Math.floor(timeLeft / 60);
+				const seconds = timeLeft % 60;
+
+				rankingTimer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+			}
+
+			function endGame() {
+				clearInterval(timerInterval);
+				isGameRunning = false;
+				timeLeft = 0;
+				updateTimerDisplay();
+				updateRankingTimer();
+
+				// Determinar o vencedor
+				if (teams.length > 0) {
+					const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+					const winner = sortedTeams[0];
+
+					winnerBanner.classList.remove('hidden');
+					winnerTeam.textContent = winner.name;
+					winnerScore.textContent = `com ${winner.score} pontos!`;
+					gameStatus.textContent = 'Finalizado';
+				}
+
+				saveData();
+			}
+
+			// Baixar todos os QR codes como PDF
+			function downloadAllQRCodes() {
+				if (qrCodes.length === 0) {
+					alert('Nenhum QR code foi gerado ainda!');
+					return;
+				}
+
+				const { jsPDF } = window.jspdf;
+				const doc = new jsPDF();
+				const qrSize = 50;
+				const margin = 20;
+				const spacing = 10;
+				const qrPerRow = 3;
+				const qrPerPage = qrPerRow * 4;
+
+				let x = margin;
+				let y = margin;
+				let page = 1;
+
+				doc.setFont('helvetica', 'bold');
+				doc.setFontSize(16);
+				doc.text('QR Codes para Caçada', 105, 15, { align: 'center' });
+				doc.setFontSize(10);
+						doc.setFont('helvetica', 'normal');
+					}
+
+					// Calcular posição do próximo QR code
+					if ((index % qrPerRow) === 0 && index > 0) {
+						x = margin;
+						y += qrSize + spacing + 15; // Altura do QR + espaço + texto
+					}
+
+					// Criar um canvas temporário para o QR code
+					const tempCanvas = document.createElement('canvas');
+					QRCode.toCanvas(tempCanvas, qr.id, {
+						width: qrSize * 2, // Maior resolução para melhor qualidade
+						margin: 0
+					}, function (error) {
+						if (error) console.error(error);
+
+						// Adicionar QR code ao PDF
+						const imgData = tempCanvas.toDataURL('image/jpeg', 1.0);
+						doc.addImage(imgData, 'JPEG', x, y, qrSize, qrSize);
+
+						// Adicionar pontuação abaixo do QR code
+						doc.setFontSize(8);
+						doc.text(`Pontos: ${qr.points}`, x + qrSize / 2, y + qrSize + 5, { align: 'center' });
+
+						// Mover para o próximo QR code na linha
+						x += qrSize + spacing;
+					});
+				});
+
+				// Pequeno atraso para garantir que todos os QR codes sejam renderizados
+				setTimeout(() => {
+					doc.save('qr_codes_cacada.pdf');
+				}, 1000);
+			}
+
+			// Registrar equipe
+			function registerTeam() {
+				const teamName = document.getElementById('team-name').value.trim();
+				const teamMembers = document.getElementById('team-members').value.trim();
+
+				if (!teamName) {
+					alert('Por favor, insira um nome para a equipe!');
+					return;
+				}
+
+				const teamId = 'team_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+
+				teams.push({
+					id: teamId,
+					name: teamName,
+					members: teamMembers.split(',').map(m => m.trim()).filter(m => m),
+					score: 0,
+					scannedCount: 0,
+					scannedQRs: []
+				});
+
+				// Limpar campos
+				document.getElementById('team-name').value = '';
+				document.getElementById('team-members').value = '';
+
+				// Atualizar interface
+				updateTeamsList();
+				populateTeamSelect();
+				updateRanking();
+				saveData();
+
+				alert(`Equipe "${teamName}" registrada com sucesso!`);
+			}
+
+			// Preencher o seletor de equipes
+			function populateTeamSelect() {
+				teamSelect.innerHTML = '<option value="">Selecione uma equipe</option>';
+
+				teams.forEach(team => {
+					const option = document.createElement('option');
+					option.value = team.id;
+					option.textContent = team.name;
+					teamSelect.appendChild(option);
+				});
+			}
+
+			// Atualizar lista de equipes
+			function updateTeamsList() {
+				if (teams.length === 0) {
+					teamsList.innerHTML = '<p class="text-gray-500 italic">Nenhuma equipe cadastrada ainda.</p>';
+					return;
+				}
+
+				teamsList.innerHTML = '';
+
+				teams.forEach(team => {
+					const teamElement = document.createElement('div');
+					teamElement.className = 'bg-gray-50 p-3 rounded-lg border border-gray-200';
+
+					teamElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="font-medium">${team.name}</p>
+                                <p class="text-sm text-gray-600">${team.members.length > 0 ? team.members.join(', ') : 'Sem integrantes'}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-blue-600">${team.score} pontos</p>
+                                <p class="text-sm text-gray-600">${team.scannedCount} QR(s) escaneados</p>
+                            </div>
+                        </div>
+                    `;
+
+					teamsList.appendChild(teamElement);
+				});
+			}
+
+			// Iniciar scanner de QR code
+			function startScanner() {
+				const selectedTeamId = teamSelect.value;
+
+				if (!selectedTeamId) {
+					alert('Por favor, selecione uma equipe antes de iniciar o scanner!');
+					return;
+				}
+
+				currentTeamId = selectedTeamId;
+				const team = teams.find(t => t.id === currentTeamId);
+
+				if (team) {
+					currentTeamName.textContent = team.name;
+					currentTeamScore.textContent = `${team.score} pontos`;
+					document.getElementById('current-team-scans').textContent = team.scannedCount;
+				}
+
+				// Esconder resultado anterior
+				scanResult.classList.add('hidden');
+				errorMessage.classList.add('hidden');
+
+				// Atualizar histórico de pontuação
+				updateScoreHistory(currentTeamId);
+
+				// Iniciar scanner
+				if (html5QrScanner) {
+					html5QrScanner.clear();
+				}
+
+				html5QrScanner = new Html5Qrcode("qr-reader");
+				const config = {
+					fps: 10,
+					qrbox: { width: 250, height: 250 },
+					rememberLastUsedCamera: true
+				};
+
+				html5QrScanner.start(
+					{ facingMode: currentCamera },
+					config,
+					onQRCodeSuccess,
+					onQRCodeError
+				).then(() => {
+					scannerActive = true;
+					document.getElementById('scanner-button').textContent = 'Parar Scanner';
+					document.getElementById('scanner-button').onclick = stopScanner;
+					document.getElementById('camera-switch').classList.remove('hidden');
+				}).catch(err => {
+					console.error('Erro ao iniciar scanner:', err);
+					errorMessage.textContent = `Erro ao iniciar scanner: ${err.message || err}`;
+					errorMessage.classList.remove('hidden');
+				});
+			}
+
+			// Callback para sucesso no escaneamento
+			function onQRCodeSuccess(decodedText, decodedResult) {
+				// Reproduzir som de sucesso
+				const audio = new Audio('https://cdn.jsdelivr.net/gh/rafaelcastrocouto/sounds@main/success.mp3');
+				audio.play();
+
+				// Processar o QR code escaneado
+				processScannedQR(decodedText);
+			}
+
+			// Callback para erro no escaneamento
+			function onQRCodeError(err) {
+				// Não exibir erros de escaneamento, pois são comuns e esperados
+				console.log('Erro de escaneamento (normal):', err);
+			}
+
+			// Parar scanner
+			function stopScanner() {
+				if (html5QrScanner) {
+					html5QrScanner.stop().then(() => {
+						scannerActive = false;
+						document.getElementById('scanner-button').textContent = 'Iniciar Scanner';
+						document.getElementById('scanner-button').onclick = startScanner;
+						document.getElementById('camera-switch').classList.add('hidden');
+					}).catch(err => {
+						console.error('Erro ao parar scanner:', err);
+					});
+				}
+			}
+
+			// Processar QR code escaneado
+			function processScannedQR(qrCodeText) {
+				// Verificar se o QR code é válido
+				const qrCode = qrCodes.find(qr => qr.id === qrCodeText);
+
+				if (!qrCode) {
+					errorMessage.textContent = 'QR Code inválido ou não pertence a esta caçada!';
+					errorMessage.classList.remove('hidden');
+					return;
+				}
+
+				// Verificar se o QR code já foi escaneado por esta equipe
+				const team = teams.find(t => t.id === currentTeamId);
+				if (team.scannedQRs.includes(qrCode.id)) {
+					errorMessage.textContent = 'Você já escaneou este QR Code!';
+					errorMessage.classList.remove('hidden');
+					return;
+				}
+
+				// Verificar se o QR code já foi escaneado por outra equipe
+				if (qrCode.scanned && qrCode.scannedBy !== currentTeamId) {
+					errorMessage.textContent = 'Este QR Code já foi escaneado por outra equipe!';
+					errorMessage.classList.remove('hidden');
+					return;
+				}
+
+				// Atualizar estado do QR code
+				qrCode.scanned = true;
+				qrCode.scannedBy = currentTeamId;
+				qrCode.scannedAt = new Date().toISOString();
+
+				// Atualizar pontuação da equipe
+				team.score += qrCode.points;
+				team.scannedCount += 1;
+				team.scannedQRs.push(qrCode.id);
+
+				// Registrar escaneamento
+				scannedQRCodes.push({
+					qrId: qrCode.id,
+					teamId: currentTeamId,
+					points: qrCode.points,
+					scannedAt: qrCode.scannedAt
+				});
+
+				// Atualizar interface
+				currentTeamScore.textContent = `${team.score} pontos`;
+				document.getElementById('current-team-scans').textContent = team.scannedCount;
+
+				// Mostrar resultado
+				pointsEarned.textContent = `+${qrCode.points} pontos`;
+				totalPoints.textContent = `Total: ${team.score} pontos`;
+				scanResult.classList.remove('hidden');
+				errorMessage.classList.add('hidden');
+
+				// Atualizar histórico de pontuação
+				updateScoreHistory(currentTeamId);
+
+				// Atualizar ranking
+				updateRanking();
+
+				// Atualizar QR codes na interface
+				renderQRCodes();
+				renderScannedQRCodes();
+
+				// Salvar dados
+				saveData();
+			}
+
+			// Evento de mudança de equipe
+			teamSelect.addEventListener('change', function () {
+				const selectedTeamId = this.value;
+				if (selectedTeamId) {
+					currentTeamId = selectedTeamId;
+					const team = teams.find(t => t.id === currentTeamId);
+
+					if (team) {
+						currentTeamName.textContent = team.name;
+						currentTeamScore.textContent = `${team.score} pontos`;
+						document.getElementById('current-team-scans').textContent = team.scannedCount;
+						updateScoreHistory(currentTeamId);
+					}
+				}
+			});
+
+			// Atualizar ranking
+			function updateRanking() {
+				if (teams.length === 0) {
+					teamsRanking.innerHTML = `
+                        <div class="flex items-center justify-between bg-gray-100 rounded-lg p-4">
+                            <p class="text-gray-500 italic">Nenhuma equipe registrada ainda.</p>
+                        </div>
+                    `;
+					return;
+				}
+
+				// Ordenar equipes por pontuação
+				const sortedTeams = [...teams].sort((a, b) => b.score - a.score);
+
+				teamsRanking.innerHTML = '';
+
+				sortedTeams.forEach((team, index) => {
+					const rankElement = document.createElement('div');
+					rankElement.className = `flex items-center justify-between p-4 rounded-lg ${index === 0 ? 'bg-yellow-100 border-2 border-yellow-400' : 'bg-gray-50 border border-gray-200'}`;
+
+					let medalEmoji = '';
+					if (index === 0) medalEmoji = '🥇';
+					else if (index === 1) medalEmoji = '🥈';
+					else if (index === 2) medalEmoji = '🥉';
+
+					rankElement.innerHTML = `
+                            <div class="flex items-center">
+                                <span class="text-2xl font-bold mr-3">${index + 1}${medalEmoji}</span>
+                                <div>
+                                    <p class="font-bold text-lg">${team.name}</p>
+                                    <p class="text-sm text-gray-600">${team.scannedCount} QR(s) escaneados</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-2xl font-bold ${index === 0 ? 'text-yellow-600' : 'text-blue-600'}">${team.score}</p>
+                                <p class="text-sm text-gray-600">pontos</p>
+                            </div>
+                        `;
+
+					teamsRanking.appendChild(rankElement);
+				});
+			}
+
+			// Atualizar histórico de pontuação
+			function updateScoreHistory(teamId) {
+				const historyList = document.getElementById('history-list');
+				const team = teams.find(t => t.id === teamId);
+
+				if (!team || team.scannedCount === 0) {
+					historyList.innerHTML = '<p class="text-gray-500 italic text-center py-4">Nenhum QR code escaneado ainda</p>';
+					return;
+				}
+
+				historyList.innerHTML = '';
+
+				// Filtrar escaneamentos desta equipe
+				const teamScans = scannedQRCodes.filter(scan => scan.teamId === teamId);
+
+				// Ordenar por data (mais recente primeiro)
+				teamScans.sort((a, b) => new Date(b.scannedAt) - new Date(a.scannedAt));
+
+				teamScans.forEach(scan => {
+					const scanElement = document.createElement('div');
+					scanElement.className = 'bg-gray-50 p-2 rounded-lg border border-gray-200';
+
+					scanElement.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-sm text-gray-600">${new Date(scan.scannedAt).toLocaleString()}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-600">+${scan.points} pontos</p>
+                            </div>
+                        </div>
+                    `;
+
+					historyList.appendChild(scanElement);
+				});
+			}
+
+			// Alternar entre câmeras
+			function switchCamera() {
+				currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+				
+				// Reiniciar scanner com a nova câmera
+				if (scannerActive) {
+					stopScanner();
+					setTimeout(() => {
+						startScanner();
+					}, 500);
+				}
+			}
+
+			// Inicializar o aplicativo quando o DOM estiver carregado
+			document.addEventListener('DOMContentLoaded', init);
+		</script>
+	</body>
+</html>

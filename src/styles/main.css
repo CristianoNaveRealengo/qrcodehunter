@@ -1,0 +1,202 @@
+/* Importação de fontes */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+/* Variáveis de cores */
+:root {
+    --primary: #4F46E5;
+    --secondary: #10B981;
+    --accent: #F59E0B;
+    --dark: #1F2937;
+    --light: #F3F4F6;
+}
+
+/* Estilo do corpo da página */
+body {
+    font-family: 'Nunito', sans-serif;
+    background-color: #F9FAFB;
+}
+
+/* Estilos para o scanner de QR code */
+#qr-reader {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#qr-reader__dashboard {
+    padding: 8px;
+    background-color: #f3f4f6;
+}
+
+#qr-reader__scan_region {
+    background-color: #000;
+    min-height: 300px;
+}
+
+#qr-reader__scan_region > img {
+    opacity: 0.6;
+}
+
+#qr-reader__status {
+    color: #4F46E5;
+    font-weight: bold;
+    padding: 8px 0;
+}
+
+/* Estilo do banner de vencedor */
+.winner-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #10B981;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    font-weight: bold;
+    z-index: 1000;
+    display: none;
+}
+
+/* Estilo da fonte do título */
+.title-font {
+    font-family: 'Fredoka One', cursive;
+}
+
+/* Estilo do botão primário */
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #4338CA;
+}
+
+/* Estilo do botão secundário */
+.btn-secondary {
+    background-color: var(--secondary);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #0D9488;
+}
+
+/* Estilo do botão de destaque */
+.btn-accent {
+    background-color: var(--accent);
+    color: white;
+}
+
+.btn-accent:hover {
+    background-color: #D97706;
+}
+
+/* Animação de pulso */
+.pulse {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Animação de salto */
+.bounce {
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Estilo do scanner de QR code */
+.qr-scanner {
+    width: 100%;
+    max-width: 500px;
+    height: 300px;
+    background-color: #000;
+    margin: 0 auto;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+}
+
+.qr-scanner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px dashed rgba(255, 255, 255, 0.5);
+    animation: scanner 4s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes scanner {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+/* Estilo do emblema de líder */
+.leader-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: #F59E0B;
+    color: white;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* Estilo do contêiner de QR codes */
+.qr-code-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* Estilo do item de QR code */
+.qr-code-item {
+    background-color: white;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    width: 120px;
+}
+
+/* Estilo do canvas do QR code */
+.qr-code-item canvas {
+    width: 100px;
+    height: 100px;
+}
