@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste - Modo Cliente QR Hunter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste do Modo Cliente - QR Hunter</h1>
+    
+    <div class="test-section">
+        <h2>📋 Testes de Elementos DOM</h2>
+        <button onclick="testDOMElements()">Executar Teste de Elementos</button>
+        <div id="dom-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Testes de Event Listeners</h2>
+        <button onclick="testEventListeners()">Executar Teste de Event Listeners</button>
+        <div id="event-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📷 Teste de Câmera</h2>
+        <button onclick="testCameraAPI()">Testar API de Câmera</button>
+        <div id="camera-test-results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Resumo dos Testes</h2>
+        <div id="test-summary"></div>
+    </div>
+
+    <script>
+        let testResults = {
+            dom: [],
+            events: [],
+            camera: []
+        };
+
+        function addTestResult(category, test, passed, message) {
+            testResults[category].push({
+                test: test,
+                passed: passed,
+                message: message
+            });
+        }
+
+        function displayResults(category, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            testResults[category].forEach(result => {
+                const div = document.createElement('div');
+                div.className = `test-result ${result.passed ? 'success' : 'error'}`;
+                div.innerHTML = `
+                    <strong>${result.passed ? '✅' : '❌'} ${result.test}</strong><br>
+                    ${result.message}
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function testDOMElements() {
+            testResults.dom = [];
+            
+            // Lista de elementos que devem existir no modo cliente
+            const requiredElements = [
+                'client-screen',
+                'client-team-select', 
+                'client-team-name',
+                'client-team-score',
+                'client-team-scans',
+                'client-scanner-button',
+                'client-camera-switch',
+                'client-qr-reader',
+                'client-scan-result',
+                'client-points-earned',
+                'client-total-points',
+                'client-score-history',
+                'client-history-list',
+                'client-error-message'
+            ];
+
+            requiredElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                const exists = element !== null;
+                addTestResult('dom', `Elemento '${elementId}'`, exists, 
+                    exists ? 'Elemento encontrado com sucesso' : 'Elemento não encontrado no DOM');
+            });
+
+            displayResults('dom', 'dom-test-results');
+            updateSummary();
+        }
+
+        function testEventListeners() {
+            testResults.events = [];
+            
+            // Testar se os elementos existem antes de adicionar event listeners
+            const scannerButton = document.getElementById('client-scanner-button');
+            const cameraButton = document.getElementById('client-camera-switch');
+            const teamSelect = document.getElementById('client-team-select');
+
+            addTestResult('events', 'Botão Scanner existe', scannerButton !== null,
+                scannerButton ? 'Botão do scanner encontrado' : 'Botão do scanner não encontrado');
+            
+            addTestResult('events', 'Botão Câmera existe', cameraButton !== null,
+                cameraButton ? 'Botão da câmera encontrado' : 'Botão da câmera não encontrado');
+            
+            addTestResult('events', 'Seletor de Equipe existe', teamSelect !== null,
+                teamSelect ? 'Seletor de equipe encontrado' : 'Seletor de equipe não encontrado');
+
+            // Testar se conseguimos adicionar event listeners sem erro
+            try {
+                if (scannerButton) {
+                    scannerButton.addEventListener('click', function() {
+                        console.log('Event listener do scanner funcionando');
+                    });
+                    addTestResult('events', 'Event Listener Scanner', true, 'Event listener adicionado com sucesso');
+                } else {
+                    addTestResult('events', 'Event Listener Scanner', false, 'Não foi possível adicionar - elemento não existe');
+                }
+            } catch (error) {
+                addTestResult('events', 'Event Listener Scanner', false, `Erro: ${error.message}`);
+            }
+
+            try {
+                if (cameraButton) {
+                    cameraButton.addEventListener('click', function() {
+                        console.log('Event listener da câmera funcionando');
+                    });
+                    addTestResult('events', 'Event Listener Câmera', true, 'Event listener adicionado com sucesso');
+                } else {
+                    addTestResult('events', 'Event Listener Câmera', false, 'Não foi possível adicionar - elemento não existe');
+                }
+            } catch (error) {
+                addTestResult('events', 'Event Listener Câmera', false, `Erro: ${error.message}`);
+            }
+
+            displayResults('events', 'event-test-results');
+            updateSummary();
+        }
+
+        async function testCameraAPI() {
+            testResults.camera = [];
+            
+            // Testar se a API de câmera está disponível
+            const hasMediaDevices = navigator.mediaDevices !== undefined;
+            addTestResult('camera', 'API MediaDevices', hasMediaDevices,
+                hasMediaDevices ? 'API MediaDevices disponível' : 'API MediaDevices não disponível');
+
+            const hasGetUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia;
+            addTestResult('camera', 'getUserMedia', hasGetUserMedia,
+                hasGetUserMedia ? 'getUserMedia disponível' : 'getUserMedia não disponível');
+
+            // Testar acesso à câmera
+            if (hasGetUserMedia) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                    addTestResult('camera', 'Acesso à Câmera', true, 'Câmera acessada com sucesso');
+                    
+                    // Parar o stream para liberar a câmera
+                    stream.getTracks().forEach(track => track.stop());
+                } catch (error) {
+                    addTestResult('camera', 'Acesso à Câmera', false, `Erro: ${error.name} - ${error.message}`);
+                }
+            } else {
+                addTestResult('camera', 'Acesso à Câmera', false, 'API não disponível');
+            }
+
+            displayResults('camera', 'camera-test-results');
+            updateSummary();
+        }
+
+        function updateSummary() {
+            const summary = document.getElementById('test-summary');
+            let totalTests = 0;
+            let passedTests = 0;
+
+            Object.values(testResults).forEach(category => {
+                category.forEach(result => {
+                    totalTests++;
+                    if (result.passed) passedTests++;
+                });
+            });
+
+            const percentage = totalTests > 0 ? Math.round((passedTests / totalTests) * 100) : 0;
+            const status = percentage === 100 ? 'success' : percentage >= 70 ? 'warning' : 'error';
+
+            summary.innerHTML = `
+                <div class="test-result ${status}">
+                    <strong>📊 Resumo Geral</strong><br>
+                    Testes Executados: ${totalTests}<br>
+                    Testes Aprovados: ${passedTests}<br>
+                    Taxa de Sucesso: ${percentage}%<br>
+                    Status: ${percentage === 100 ? '🎉 Todos os testes passaram!' : 
+                             percentage >= 70 ? '⚠️ Alguns problemas encontrados' : 
+                             '🚨 Problemas críticos encontrados'}
+                </div>
+            `;
+        }
+
+        // Executar teste básico ao carregar a página
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🧪 Página de teste carregada. Execute os testes manualmente.');
+        });
+    </script>
+</body>
+</html>
