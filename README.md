@@ -2,6 +2,12 @@
 
 Um jogo interativo de caça aos QR Codes desenvolvido em React Native com suporte para web. Perfeito para gincanas com crianças usando códigos QR.
 
+## 🌐 Acesse a Aplicação
+
+**[🚀 Abrir QR Code Hunter](https://cristianonaverealengo.github.io/qrcodehunter/)**
+
+> A aplicação funciona totalmente offline após o carregamento inicial!
+
 ## 🎯 Funcionalidades
 
 ### Para Participantes
