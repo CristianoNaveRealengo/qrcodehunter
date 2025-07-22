@@ -7,9 +7,10 @@ import { generateRandomPoints, generateUniqueId } from '../utils/validation';
 interface QRCodeCardProps {
   qrCode: QRCodeType;
   onShare: (qrCode: QRCodeType) => void;
+  onPrint: (qrCode: QRCodeType) => void;
 }
 
-const QRCodeCard: React.FC<QRCodeCardProps> = ({ qrCode, onShare }) => {
+const QRCodeCard: React.FC<QRCodeCardProps> = ({ qrCode, onShare, onPrint }) => {
   const [qrImageUrl, setQrImageUrl] = useState<string>('');
 
   useEffect(() => {
@@ -50,12 +51,20 @@ const QRCodeCard: React.FC<QRCodeCardProps> = ({ qrCode, onShare }) => {
         <div style={styles.codeText}>
           {qrCode.code}
         </div>
-        <button
-          style={styles.shareButton}
-          onClick={() => onShare(qrCode)}
-        >
-          📤 Compartilhar
-        </button>
+        <div style={styles.buttonContainer}>
+          <button
+            style={styles.shareButton}
+            onClick={() => onShare(qrCode)}
+          >
+            📤 Compartilhar
+          </button>
+          <button
+            style={styles.printButton}
+            onClick={() => onPrint(qrCode)}
+          >
+            🖨️ Imprimir
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -96,7 +105,11 @@ const QRGenerationScreen: React.FC<Props> = ({ onBack, onNavigateToGameControl }
   };
 
   const generateMultipleCodes = () => {
-    const count = prompt('Quantos códigos você deseja gerar? (5, 10 ou 20)');
+    // Usando window.prompt com fallback para ambientes sem suporte
+    const count = window.prompt ? 
+      window.prompt('Quantos códigos você deseja gerar? (5, 10 ou 20)') :
+      '10'; // Fallback padrão para 10 códigos
+    
     const numCount = parseInt(count || '0');
     
     if ([5, 10, 20].includes(numCount)) {
@@ -153,8 +166,221 @@ const QRGenerationScreen: React.FC<Props> = ({ onBack, onNavigateToGameControl }
     }
   };
 
+  const printQRCode = async (qrCode: QRCodeType) => {
+    try {
+      // Gerar a imagem do QR code para impressão
+      const dataUrl = await QRCode.toDataURL(qrCode.code, {
+        width: 300,
+        margin: 4,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        },
+        errorCorrectionLevel: 'M'
+      });
+
+      // Criar uma nova janela para impressão
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>QR Code - ${qrCode.code}</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  text-align: center;
+                  margin: 20px;
+                }
+                .qr-container {
+                  border: 2px solid #000;
+                  padding: 20px;
+                  margin: 20px auto;
+                  width: fit-content;
+                  border-radius: 10px;
+                }
+                .qr-image {
+                  display: block;
+                  margin: 0 auto 15px;
+                }
+                .qr-info {
+                  font-size: 16px;
+                  margin: 10px 0;
+                }
+                .points {
+                  font-size: 24px;
+                  font-weight: bold;
+                  color: #FF6B6B;
+                }
+                .code {
+                  font-size: 14px;
+                  color: #666;
+                  word-break: break-all;
+                }
+                @media print {
+                  body { margin: 0; }
+                  .qr-container { border: 2px solid #000; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="qr-container">
+                <h2>QR Code da Gincana</h2>
+                <img src="${dataUrl}" alt="QR Code" class="qr-image" />
+                <div class="qr-info">
+                  <div class="points">${qrCode.points} pontos</div>
+                  <div class="code">Código: ${qrCode.code}</div>
+                  <div style="font-size: 12px; color: #999; margin-top: 15px;">
+                    Gerado em: ${new Date(qrCode.createdAt).toLocaleString('pt-BR')}
+                  </div>
+                </div>
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Aguardar um pouco para a imagem carregar antes de imprimir
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 500);
+      }
+    } catch (error) {
+      console.error('Erro ao imprimir QR code:', error);
+      alert('Erro ao imprimir o código QR.');
+    }
+  };
+
+  const printAllQRCodes = async () => {
+    if (generatedCodes.length === 0) {
+      alert('Não há códigos QR para imprimir.');
+      return;
+    }
+
+    try {
+      // Gerar todas as imagens dos QR codes
+      const qrImages = await Promise.all(
+        generatedCodes.map(async (qrCode) => {
+          const dataUrl = await QRCode.toDataURL(qrCode.code, {
+            width: 250,
+            margin: 3,
+            color: {
+              dark: '#000000',
+              light: '#FFFFFF'
+            },
+            errorCorrectionLevel: 'M'
+          });
+          return { ...qrCode, imageUrl: dataUrl };
+        })
+      );
+
+      // Criar uma nova janela para impressão de todos os códigos
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        const qrCodesHtml = qrImages.map(qr => `
+          <div class="qr-item">
+            <img src="${qr.imageUrl}" alt="QR Code" class="qr-image" />
+            <div class="qr-info">
+              <div class="points">${qr.points} pts</div>
+              <div class="code">${qr.code}</div>
+            </div>
+          </div>
+        `).join('');
+
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>Todos os QR Codes da Gincana</title>
+              <style>
+                body {
+                  font-family: Arial, sans-serif;
+                  margin: 20px;
+                }
+                .header {
+                  text-align: center;
+                  margin-bottom: 30px;
+                  border-bottom: 2px solid #000;
+                  padding-bottom: 15px;
+                }
+                .qr-grid {
+                  display: grid;
+                  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                  gap: 20px;
+                  margin-top: 20px;
+                }
+                .qr-item {
+                  border: 1px solid #000;
+                  padding: 15px;
+                  text-align: center;
+                  border-radius: 8px;
+                  page-break-inside: avoid;
+                }
+                .qr-image {
+                  width: 150px;
+                  height: 150px;
+                  margin-bottom: 10px;
+                }
+                .points {
+                  font-size: 18px;
+                  font-weight: bold;
+                  color: #FF6B6B;
+                  margin: 5px 0;
+                }
+                .code {
+                  font-size: 10px;
+                  color: #666;
+                  word-break: break-all;
+                }
+                .summary {
+                  text-align: center;
+                  margin: 20px 0;
+                  font-size: 14px;
+                }
+                @media print {
+                  body { margin: 10px; }
+                  .qr-grid { gap: 15px; }
+                  .qr-item { border: 1px solid #000; }
+                }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>QR Codes da Gincana</h1>
+                <div class="summary">
+                  Total de códigos: ${generatedCodes.length} | 
+                  Pontos totais: ${generatedCodes.reduce((sum, code) => sum + code.points, 0)} pts
+                </div>
+              </div>
+              <div class="qr-grid">
+                ${qrCodesHtml}
+              </div>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Aguardar um pouco para as imagens carregarem antes de imprimir
+        setTimeout(() => {
+          printWindow.print();
+          printWindow.close();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error('Erro ao imprimir todos os QR codes:', error);
+      alert('Erro ao imprimir os códigos QR.');
+    }
+  };
+
   const clearAllCodes = () => {
-    if (confirm('Tem certeza que deseja remover todos os códigos QR?')) {
+    // Usando window.confirm que é mais compatível
+    const shouldClear = window.confirm ? 
+      window.confirm('Tem certeza que deseja remover todos os códigos QR?') :
+      true; // Fallback para ambientes sem confirm
+    
+    if (shouldClear) {
       setGeneratedCodes([]);
       // Reset da sessão para limpar os códigos
       if (state.currentSession) {
@@ -185,6 +411,12 @@ const QRGenerationScreen: React.FC<Props> = ({ onBack, onNavigateToGameControl }
         <button style={styles.batchButton} onClick={generateMultipleCodes}>
           📊 Gerar Vários
         </button>
+
+        {generatedCodes.length > 0 && (
+          <button style={styles.printAllButton} onClick={printAllQRCodes}>
+            🖨️ Imprimir Todos
+          </button>
+        )}
       </div>
 
       <div style={styles.statsContainer}>
@@ -203,7 +435,7 @@ const QRGenerationScreen: React.FC<Props> = ({ onBack, onNavigateToGameControl }
       <div style={styles.codesContainer}>
         <div style={styles.codesGrid}>
           {generatedCodes.map((qrCode) => (
-            <QRCodeCard key={qrCode.id} qrCode={qrCode} onShare={shareQRCode} />
+            <QRCodeCard key={qrCode.id} qrCode={qrCode} onShare={shareQRCode} onPrint={printQRCode} />
           ))}
         </div>
       </div>
@@ -365,14 +597,45 @@ const styles = {
     marginTop: '5px',
     wordBreak: 'break-all' as const,
   },
-  shareButton: {
+  buttonContainer: {
+    display: 'flex',
+    gap: '5px',
     marginTop: '8px',
-    padding: '5px 10px',
+  },
+  shareButton: {
+    flex: 1,
+    padding: '5px 8px',
     backgroundColor: '#F0F0F0',
     border: 'none',
-    borderRadius: '8px',
-    fontSize: '12px',
+    borderRadius: '6px',
+    fontSize: '11px',
     color: '#4ECDC4',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  printButton: {
+    flex: 1,
+    padding: '5px 8px',
+    backgroundColor: '#F0F0F0',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '11px',
+    color: '#FF6B6B',
+    cursor: 'pointer',
+    transition: 'background-color 0.2s',
+  },
+  printAllButton: {
+    flex: 1,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    color: '#FFFFFF',
+    padding: '15px',
+    border: 'none',
+    borderRadius: '12px',
+    fontSize: '16px',
+    fontWeight: 'bold',
     cursor: 'pointer',
     transition: 'background-color 0.2s',
   },

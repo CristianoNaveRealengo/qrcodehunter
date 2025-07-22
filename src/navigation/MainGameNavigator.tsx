@@ -18,14 +18,14 @@ const MainGameNavigator: React.FC = () => {
           let iconName: string;
 
           switch (route.name) {
-            case 'Scanner':
+            case 'QRScanner':
               iconName = 'qr-code-scanner';
               break;
             case 'Scoreboard':
-              iconName = 'leaderboard';
+              iconName = 'scoreboard';
               break;
             case 'Timer':
-              iconName = 'timer';
+              iconName = 'access-time';
               break;
             default:
               iconName = 'help';
@@ -51,7 +51,7 @@ const MainGameNavigator: React.FC = () => {
       })}
     >
       <Tab.Screen 
-        name="Scanner" 
+        name="QRScanner" 
         component={QRScannerScreen}
         options={{
           tabBarLabel: 'Scanner',

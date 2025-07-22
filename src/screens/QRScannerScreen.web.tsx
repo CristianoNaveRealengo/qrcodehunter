@@ -207,9 +207,9 @@ const QRScannerScreen: React.FC<Props> = ({ onBack }) => {
             <p style={styles.statusText}>
               Status: {gameSession.isActive ? '🟢 Jogo Ativo' : '🔴 Jogo Pausado'}
             </p>
-            {gameSession.timeRemaining && (
+            {state.timer.timeLeft > 0 && (
               <p style={styles.timeText}>
-                Tempo restante: {Math.floor(gameSession.timeRemaining / 60)}:{(gameSession.timeRemaining % 60).toString().padStart(2, '0')}
+                Tempo restante: {Math.floor(state.timer.timeLeft / 60)}:{(state.timer.timeLeft % 60).toString().padStart(2, '0')}
               </p>
             )}
           </div>

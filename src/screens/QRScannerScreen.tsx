@@ -24,7 +24,7 @@ const QRScannerScreen: React.FC = () => {
   const [lastScannedCode, setLastScannedCode] = useState<string>('');
 
   const devices = useCameraDevices();
-  const device = devices.back;
+  const device = devices.find(d => d.position === 'back');
 
   useEffect(() => {
     checkCameraPermission();
@@ -33,7 +33,7 @@ const QRScannerScreen: React.FC = () => {
   const checkCameraPermission = async () => {
     try {
       const permission = await Camera.requestCameraPermission();
-      setHasPermission(permission === 'authorized');
+      setHasPermission(permission === 'granted');
     } catch (error) {
       console.error('Erro ao verificar permissão da câmera:', error);
       Alert.alert('Erro', 'Não foi possível acessar a câmera');

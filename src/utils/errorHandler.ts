@@ -181,7 +181,6 @@ export class ErrorHandler {
       buttons.unshift({
         text: 'Tentar Novamente',
         style: 'default' as const,
-        onPress: onRetry,
       });
     }
 

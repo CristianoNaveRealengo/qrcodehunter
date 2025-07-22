@@ -12,6 +12,8 @@ import {
 } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+// @ts-ignore
+import RNPrint from 'react-native-print';
 import { useGame } from '../context/GameContext';
 import { QRCode as QRCodeType, RootStackParamList } from '../types';
 import { generateRandomPoints, generateUniqueId } from '../utils/validation';
@@ -107,6 +109,177 @@ const QRGenerationScreen: React.FC<Props> = ({ navigation }) => {
     }
   };
 
+  const printQRCode = async (qrCode: QRCodeType) => {
+    try {
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>QR Code - ${qrCode.code}</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                text-align: center;
+                margin: 20px;
+                padding: 20px;
+              }
+              .qr-container {
+                border: 2px solid #000;
+                padding: 30px;
+                margin: 20px auto;
+                width: fit-content;
+                border-radius: 15px;
+                background-color: #fff;
+              }
+              .qr-info {
+                margin-top: 20px;
+              }
+              .points {
+                font-size: 28px;
+                font-weight: bold;
+                color: #FF6B6B;
+                margin: 10px 0;
+              }
+              .code {
+                font-size: 16px;
+                color: #666;
+                word-break: break-all;
+                margin: 10px 0;
+              }
+              .date {
+                font-size: 14px;
+                color: #999;
+                margin-top: 20px;
+              }
+              h2 {
+                color: #2D3436;
+                margin-bottom: 20px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="qr-container">
+              <h2>QR Code da Gincana</h2>
+              <div style="width: 200px; height: 200px; margin: 0 auto; background-color: #f0f0f0; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #666;">
+                QR Code: ${qrCode.code}
+              </div>
+              <div class="qr-info">
+                <div class="points">${qrCode.points} pontos</div>
+                <div class="code">Código: ${qrCode.code}</div>
+                <div class="date">
+                  Gerado em: ${new Date(qrCode.createdAt).toLocaleString('pt-BR')}
+                </div>
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      await RNPrint.print({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error('Erro ao imprimir QR code:', error);
+      Alert.alert('Erro', 'Não foi possível imprimir o código QR.');
+    }
+  };
+
+  const printAllQRCodes = async () => {
+    if (generatedCodes.length === 0) {
+      Alert.alert('Aviso', 'Não há códigos QR para imprimir.');
+      return;
+    }
+
+    try {
+      const qrCodesHtml = generatedCodes.map(qr => `
+        <div class="qr-item">
+          <div style="width: 150px; height: 150px; margin: 0 auto 10px; background-color: #f0f0f0; border: 1px solid #ccc; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #666;">
+            ${qr.code}
+          </div>
+          <div class="qr-info">
+            <div class="points">${qr.points} pts</div>
+            <div class="code">${qr.code}</div>
+          </div>
+        </div>
+      `).join('');
+
+      const htmlContent = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Todos os QR Codes da Gincana</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                margin: 15px;
+                padding: 10px;
+              }
+              .header {
+                text-align: center;
+                margin-bottom: 25px;
+                border-bottom: 2px solid #000;
+                padding-bottom: 15px;
+              }
+              .qr-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 15px;
+                margin-top: 20px;
+              }
+              .qr-item {
+                border: 1px solid #000;
+                padding: 10px;
+                text-align: center;
+                border-radius: 8px;
+                page-break-inside: avoid;
+                background-color: #fff;
+              }
+              .points {
+                font-size: 16px;
+                font-weight: bold;
+                color: #FF6B6B;
+                margin: 5px 0;
+              }
+              .code {
+                font-size: 9px;
+                color: #666;
+                word-break: break-all;
+              }
+              .summary {
+                text-align: center;
+                margin: 15px 0;
+                font-size: 14px;
+              }
+              h1 {
+                color: #2D3436;
+                margin-bottom: 10px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>QR Codes da Gincana</h1>
+              <div class="summary">
+                Total de códigos: ${generatedCodes.length} | 
+                Pontos totais: ${generatedCodes.reduce((sum, code) => sum + code.points, 0)} pts
+              </div>
+            </div>
+            <div class="qr-grid">
+              ${qrCodesHtml}
+            </div>
+          </body>
+        </html>
+      `;
+
+      await RNPrint.print({
+        html: htmlContent,
+      });
+    } catch (error) {
+      console.error('Erro ao imprimir todos os QR codes:', error);
+      Alert.alert('Erro', 'Não foi possível imprimir os códigos QR.');
+    }
+  };
+
   const clearAllCodes = () => {
     Alert.alert(
       'Limpar Códigos',
@@ -158,6 +331,15 @@ const QRGenerationScreen: React.FC<Props> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {generatedCodes.length > 0 && (
+        <View style={styles.printButtonContainer}>
+          <TouchableOpacity style={styles.printAllButton} onPress={printAllQRCodes}>
+            <Icon name="print" size={20} color="#FFFFFF" />
+            <Text style={styles.printAllButtonText}>Imprimir Todos</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
           <Text style={styles.statNumber}>{generatedCodes.length}</Text>
@@ -186,13 +368,22 @@ const QRGenerationScreen: React.FC<Props> = ({ navigation }) => {
                 <Text style={styles.codeText} numberOfLines={1}>
                   {qrCode.code}
                 </Text>
-                <TouchableOpacity
-                  style={styles.shareButton}
-                  onPress={() => shareQRCode(qrCode)}
-                >
-                  <Icon name="share" size={16} color="#4ECDC4" />
-                  <Text style={styles.shareButtonText}>Compartilhar</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                  <TouchableOpacity
+                    style={styles.shareButton}
+                    onPress={() => shareQRCode(qrCode)}
+                  >
+                    <Icon name="share" size={14} color="#4ECDC4" />
+                    <Text style={styles.shareButtonText}>Compartilhar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.printButton}
+                    onPress={() => printQRCode(qrCode)}
+                  >
+                    <Icon name="print" size={14} color="#FF6B6B" />
+                    <Text style={styles.printButtonText}>Imprimir</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           ))}
@@ -333,19 +524,58 @@ const styles = StyleSheet.create({
     color: '#636E72',
     marginTop: 5,
   },
-  shareButton: {
+  printButtonContainer: {
+    paddingHorizontal: 20,
+    marginBottom: 15,
+  },
+  printAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  printAllButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
     marginTop: 8,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    gap: 5,
+  },
+  shareButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 6,
     backgroundColor: '#F0F0F0',
-    borderRadius: 8,
+    borderRadius: 6,
   },
   shareButtonText: {
-    fontSize: 12,
+    fontSize: 10,
     color: '#4ECDC4',
-    marginLeft: 4,
+    marginLeft: 3,
+  },
+  printButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    backgroundColor: '#F0F0F0',
+    borderRadius: 6,
+  },
+  printButtonText: {
+    fontSize: 10,
+    color: '#FF6B6B',
+    marginLeft: 3,
   },
   clearButton: {
     flexDirection: 'row',
