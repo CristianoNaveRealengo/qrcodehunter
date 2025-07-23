@@ -33,9 +33,10 @@ const TimerScreen: React.FC = () => {
     if (state.currentSession && state.timer.isRunning) {
       const timeLeft = GameLogicService.getTimeLeft(state.currentSession, currentTime);
       
+      // Remova o useEffect de atualização de currentTime e o useEffect de cálculo de timeLeft
       dispatch({ type: 'UPDATE_TIMER', payload: timeLeft });
-
-      // Alertas de tempo
+      // Remova também os estados e animações relacionados à atualização, se não forem mais necessários
+      // Mantenha a renderização usando state.timer.timeLeft diretamente
       if (timeLeft <= 60 && timeLeft > 0 && !finalWarningShown) {
         setFinalWarningShown(true);
         Alert.alert('⏰ Último Minuto!', 'Apenas 1 minuto restante!');

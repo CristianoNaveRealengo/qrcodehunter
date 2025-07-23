@@ -156,8 +156,32 @@ const GameContext = createContext<{
   dispatch: React.Dispatch<GameAction>;
 } | null>(null);
 
+import {  useState } from 'react';
+import { GameLogicService } from '../services/gameLogic'; // Importe se não estiver
+
 export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Novo useEffect para atualizar o timer globalmente
+  useEffect(() => {
+    if (state.currentSession && state.timer.isRunning) {
+      const interval = setInterval(() => {
+        const newTime = new Date();
+        setCurrentTime(newTime);
+        const timeLeft = GameLogicService.getTimeLeft(state.currentSession, newTime);
+        dispatch({ type: 'UPDATE_TIMER', payload: timeLeft });
+
+        // Lógica de alertas e fim de jogo (mova do TimerScreen)
+        if (timeLeft <= 0 && state.currentSession.isActive) {
+          dispatch({ type: 'END_GAME' });
+          // Adicione alerta se necessário
+        }
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [state.currentSession, state.timer.isRunning]);
 
   // Carregar estado do localStorage
   useEffect(() => {
