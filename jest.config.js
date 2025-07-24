@@ -13,11 +13,11 @@ module.exports = {
 	],
 	coverageDirectory: "coverage",
 	coverageReporters: ["text", "lcov", "html"],
-	moduleNameMapping: {
+	moduleNameMapper: {
 		"^@/(.*)$": "<rootDir>/src/$1",
 	},
 	transformIgnorePatterns: [
 		"node_modules/(?!(react-native|@react-native|react-native-vector-icons|react-native-qrcode-svg|react-native-svg)/)",
 	],
-	testEnvironment: "node",
+	testEnvironment: "jsdom",
 };

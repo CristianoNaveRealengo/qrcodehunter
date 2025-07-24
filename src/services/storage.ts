@@ -94,7 +94,7 @@ export const StorageService = {
   // Clear all data
   async clearAllData(): Promise<void> {
     try {
-      await AsyncStorage.multiRemove(Object.values(STORAGE_KEYS));
+      await AsyncStorage.clear();
     } catch (error) {
       console.error('Erro ao limpar dados:', error);
       throw error;

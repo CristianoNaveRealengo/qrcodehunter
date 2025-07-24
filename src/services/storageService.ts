@@ -21,7 +21,10 @@ export class StorageService {
   static async loadGameSession(): Promise<GameSession | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.GAME_SESSION);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      
+      const session = JSON.parse(data);
+      return this.deserializeGameSession(session);
     } catch (error) {
       console.error('Erro ao carregar sessão do jogo:', error);
       return null;
@@ -40,7 +43,10 @@ export class StorageService {
   static async loadCurrentTeam(): Promise<Team | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.CURRENT_TEAM);
-      return data ? JSON.parse(data) : null;
+      if (!data) return null;
+      
+      const team = JSON.parse(data);
+      return this.deserializeTeam(team);
     } catch (error) {
       console.error('Erro ao carregar equipe atual:', error);
       return null;
@@ -59,7 +65,10 @@ export class StorageService {
   static async loadQRCodes(): Promise<QRCode[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.QR_CODES);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      
+      const qrCodes = JSON.parse(data);
+      return qrCodes.map((qr: any) => this.deserializeQRCode(qr));
     } catch (error) {
       console.error('Erro ao carregar QR Codes:', error);
       return [];
@@ -80,7 +89,10 @@ export class StorageService {
   static async loadGameHistory(): Promise<GameSession[]> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.GAME_HISTORY);
-      return data ? JSON.parse(data) : [];
+      if (!data) return [];
+      
+      const history = JSON.parse(data);
+      return history.map((session: any) => this.deserializeGameSession(session));
     } catch (error) {
       console.error('Erro ao carregar histórico do jogo:', error);
       return [];
@@ -106,5 +118,38 @@ export class StorageService {
       console.error('Erro ao limpar dados do jogo:', error);
       throw error;
     }
+  }
+
+  /**
+   * Deserializa uma sessão de jogo, convertendo strings de data para objetos Date
+   */
+  private static deserializeGameSession(session: any): GameSession {
+    return {
+      ...session,
+      startTime: session.startTime ? new Date(session.startTime) : null,
+      endTime: session.endTime ? new Date(session.endTime) : null,
+      teams: session.teams.map((team: any) => this.deserializeTeam(team)),
+      qrCodes: session.qrCodes.map((qr: any) => this.deserializeQRCode(qr))
+    };
+  }
+
+  /**
+   * Deserializa uma equipe, convertendo strings de data para objetos Date
+   */
+  private static deserializeTeam(team: any): Team {
+    return {
+      ...team,
+      createdAt: new Date(team.createdAt)
+    };
+  }
+
+  /**
+   * Deserializa um QR Code, convertendo strings de data para objetos Date
+   */
+  private static deserializeQRCode(qr: any): QRCode {
+    return {
+      ...qr,
+      createdAt: new Date(qr.createdAt)
+    };
   }
 }

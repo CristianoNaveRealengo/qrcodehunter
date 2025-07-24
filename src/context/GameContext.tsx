@@ -1,6 +1,37 @@
-import React, { createContext, useContext, useEffect, useReducer } from 'react';
+import React, { createContext, useContext, useEffect, useReducer, useRef, useState } from 'react';
 import { GameSession, GameState, QRCode, Team } from '../types';
 import { generateUniqueId } from '../utils/validation';
+
+/**
+ * Deserializa o estado do jogo, convertendo strings de data para objetos Date
+ */
+const deserializeGameState = (state: any): GameState => {
+  if (!state.currentSession) {
+    return state;
+  }
+
+  return {
+    ...state,
+    currentSession: {
+      ...state.currentSession,
+      startTime: state.currentSession.startTime ? new Date(state.currentSession.startTime) : null,
+      endTime: state.currentSession.endTime ? new Date(state.currentSession.endTime) : null,
+      teams: state.currentSession.teams.map((team: any) => ({
+        ...team,
+        createdAt: new Date(team.createdAt)
+      })),
+      qrCodes: state.currentSession.qrCodes.map((qr: any) => ({
+        ...qr,
+        createdAt: new Date(qr.createdAt)
+      }))
+    },
+    currentTeam: state.currentTeam ? {
+      ...state.currentTeam,
+      createdAt: new Date(state.currentTeam.createdAt)
+    } : null
+  };
+};
+import { GameLogicService } from '../services/gameLogic';
 
 // Versão web do GameContext - compatível com Vite
 // Substitui AsyncStorage por localStorage
@@ -156,14 +187,27 @@ const GameContext = createContext<{
   dispatch: React.Dispatch<GameAction>;
 } | null>(null);
 
-import {  useState } from 'react';
-import { GameLogicService } from '../services/gameLogic'; // Importe se não estiver
-
-export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const GameProvider = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const initialized = useRef(false);
 
-  // Novo useEffect para atualizar o timer globalmente
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'test' && !initialized.current && !state.currentSession) {
+      initialized.current = true;
+      dispatch({ type: 'CREATE_GAME_SESSION', payload: { duration: 30 } });
+      const testTeam = {
+        id: generateUniqueId(),
+        name: 'Equipe Teste',
+        participants: ['Membro 1'],
+        score: 0,
+        scannedCodes: [],
+        createdAt: new Date(),
+      };
+      dispatch({ type: 'ADD_TEAM', payload: testTeam });
+    }
+  }, [state.currentSession, dispatch]);
+
   useEffect(() => {
     if (state.currentSession && state.timer.isRunning) {
       const interval = setInterval(() => {
@@ -171,46 +215,36 @@ export const GameProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentTime(newTime);
         const timeLeft = GameLogicService.getTimeLeft(state.currentSession, newTime);
         dispatch({ type: 'UPDATE_TIMER', payload: timeLeft });
-
-        // Lógica de alertas e fim de jogo (mova do TimerScreen)
         if (timeLeft <= 0 && state.currentSession.isActive) {
           dispatch({ type: 'END_GAME' });
-          // Adicione alerta se necessário
         }
       }, 1000);
-
       return () => clearInterval(interval);
     }
-  }, [state.currentSession, state.timer.isRunning]);
+  }, [state.currentSession, state.timer.isRunning, dispatch]);
 
-  // Carregar estado do localStorage
   useEffect(() => {
     const loadGameState = () => {
       try {
         const savedState = localStorage.getItem('gameState');
         if (savedState) {
           const parsedState = JSON.parse(savedState);
-          dispatch({ type: 'LOAD_GAME_STATE', payload: parsedState });
+          const deserializedState = deserializeGameState(parsedState);
+          dispatch({ type: 'LOAD_GAME_STATE', payload: deserializedState });
         }
       } catch (error) {
         console.error('Erro ao carregar estado do jogo:', error);
       }
     };
-
     loadGameState();
-  }, []);
+  }, [dispatch]);
 
-  // Salvar estado no localStorage
   useEffect(() => {
-    const saveGameState = () => {
-      try {
-        localStorage.setItem('gameState', JSON.stringify(state));
-      } catch (error) {
-        console.error('Erro ao salvar estado do jogo:', error);
-      }
-    };
-
-    saveGameState();
+    try {
+      localStorage.setItem('gameState', JSON.stringify(state));
+    } catch (error) {
+      console.error('Erro ao salvar estado do jogo:', error);
+    }
   }, [state]);
 
   return (

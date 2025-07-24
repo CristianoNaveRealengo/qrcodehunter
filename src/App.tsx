@@ -4,7 +4,7 @@ import ErrorBoundary from './utils/errorBoundary';
 import WelcomeScreen from './screens/WelcomeScreen';
 
 // Versão web do App - compatível com Vite
-// Remove componentes React Native e usa componentes web
+// Renderiza diretamente o WelcomeScreen sem React Navigation
 const App: React.FC = () => {
   return (
     <ErrorBoundary>

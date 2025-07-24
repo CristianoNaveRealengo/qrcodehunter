@@ -71,10 +71,9 @@ describe('GameContext', () => {
     const mockTeam: Team = {
       id: 'team1',
       name: 'Test Team',
-      participants: ['Player 1'],
+      members: ['Player 1'],
       score: 0,
       scannedCodes: [],
-      createdAt: new Date(),
     };
 
     act(() => {

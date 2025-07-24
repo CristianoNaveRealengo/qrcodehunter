@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug QRCode Hunter</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .error { color: red; background: #ffe6e6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; background: #e6ffe6; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .info { color: blue; background: #e6f3ff; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug QRCode Hunter</h1>
+    <div id="status">Carregando...</div>
+    <div id="errors"></div>
+    <div id="console-logs"></div>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        const errorsDiv = document.getElementById('errors');
+        const consoleDiv = document.getElementById('console-logs');
+        
+        // Capturar erros
+        window.addEventListener('error', (e) => {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `
+                <h3>❌ Erro JavaScript:</h3>
+                <p><strong>Mensagem:</strong> ${e.message}</p>
+                <p><strong>Arquivo:</strong> ${e.filename}</p>
+                <p><strong>Linha:</strong> ${e.lineno}</p>
+                <p><strong>Coluna:</strong> ${e.colno}</p>
+                <pre>${e.error ? e.error.stack : 'Stack trace não disponível'}</pre>
+            `;
+            errorsDiv.appendChild(errorDiv);
+        });
+        
+        // Capturar erros de promise rejeitada
+        window.addEventListener('unhandledrejection', (e) => {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `
+                <h3>❌ Promise Rejeitada:</h3>
+                <p><strong>Razão:</strong> ${e.reason}</p>
+                <pre>${e.reason && e.reason.stack ? e.reason.stack : 'Stack trace não disponível'}</pre>
+            `;
+            errorsDiv.appendChild(errorDiv);
+        });
+        
+        // Override console.error para capturar logs
+        const originalConsoleError = console.error;
+        console.error = function(...args) {
+            originalConsoleError.apply(console, args);
+            const logDiv = document.createElement('div');
+            logDiv.className = 'error';
+            logDiv.innerHTML = `
+                <h3>🚨 Console Error:</h3>
+                <pre>${args.map(arg => typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)).join(' ')}</pre>
+            `;
+            consoleDiv.appendChild(logDiv);
+        };
+        
+        // Testar carregamento do React app
+        setTimeout(() => {
+            try {
+                // Verificar se o React foi carregado
+                const reactScript = document.querySelector('script[src*="index-HYUbUEd6.js"]');
+                if (reactScript) {
+                    statusDiv.innerHTML = '<div class="info">✅ Script React encontrado</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="error">❌ Script React não encontrado</div>';
+                }
+                
+                // Verificar se o root foi populado
+                const root = document.getElementById('root');
+                if (root && root.children.length > 0) {
+                    statusDiv.innerHTML += '<div class="success">✅ Aplicação React carregada com sucesso</div>';
+                } else {
+                    statusDiv.innerHTML += '<div class="error">❌ Aplicação React não carregou no elemento root</div>';
+                }
+                
+                // Verificar localStorage
+                try {
+                    const gameState = localStorage.getItem('gameState');
+                    if (gameState) {
+                        const parsed = JSON.parse(gameState);
+                        statusDiv.innerHTML += '<div class="info">📦 Estado do jogo encontrado no localStorage</div>';
+                        statusDiv.innerHTML += `<pre>Estado: ${JSON.stringify(parsed, null, 2).substring(0, 500)}...</pre>`;
+                    } else {
+                        statusDiv.innerHTML += '<div class="info">📦 Nenhum estado do jogo no localStorage</div>';
+                    }
+                } catch (e) {
+                    statusDiv.innerHTML += `<div class="error">❌ Erro ao ler localStorage: ${e.message}</div>`;
+                }
+                
+            } catch (e) {
+                statusDiv.innerHTML = `<div class="error">❌ Erro durante verificação: ${e.message}</div>`;
+            }
+        }, 2000);
+    </script>
+    
+    <!-- Carregar a aplicação React -->
+    <div id="root"></div>
+    <script type="module" crossorigin src="./assets/index-HYUbUEd6.js"></script>
+</body>
+</html>
