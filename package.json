@@ -1,20 +1,37 @@
 {
-	"name": "qrcode-hunter",
+	"name": "qrcode-hunter-quiz",
 	"version": "1.0.0",
+	"description": "Sistema de Quiz Online em Tempo Real inspirado no Kahoot integrado ao QRCode Hunter",
 	"main": "index.js",
+	"type": "module",
+	"workspaces": [
+		"packages/*"
+	],
 	"scripts": {
-		"dev": "node node_modules/vite/bin/vite.js",
-		"build": "node node_modules/vite/bin/vite.js build",
+		"dev": "concurrently \"npm run dev:server\" \"npm run dev:admin\" \"npm run dev:original\"",
+		"dev:server": "npm run dev --workspace=@qrcode-hunter/server",
+		"dev:admin": "npm run dev --workspace=@qrcode-hunter/admin-ui",
+		"dev:original": "node node_modules/vite/bin/vite.js",
+		"build": "npm run build:shared && npm run build:server && npm run build:admin && npm run build:original",
+		"build:shared": "npm run build --workspace=@qrcode-hunter/shared",
+		"build:server": "npm run build --workspace=@qrcode-hunter/server",
+		"build:admin": "npm run build --workspace=@qrcode-hunter/admin-ui",
+		"build:original": "node node_modules/vite/bin/vite.js build",
 		"build:web": "node node_modules/vite/bin/vite.js build",
 		"preview": "node node_modules/vite/bin/vite.js preview",
 		"deploy": "npm run build:web && node node_modules/gh-pages/bin/gh-pages.js -d dist",
 		"android": "react-native run-android",
 		"ios": "react-native run-ios",
 		"start": "react-native start",
-		"test": "node node_modules/jest/bin/jest.js",
+		"start:server": "npm run start --workspace=@qrcode-hunter/server",
+		"test": "npm run test --workspaces && node node_modules/jest/bin/jest.js",
+		"test:server": "npm run test --workspace=@qrcode-hunter/server",
+		"test:admin": "npm run test --workspace=@qrcode-hunter/admin-ui",
 		"test:watch": "node node_modules/jest/bin/jest.js --watch",
 		"test:coverage": "node node_modules/jest/bin/jest.js --coverage",
-		"lint": "eslint . --ext .js,.jsx,.ts,.tsx"
+		"lint": "npm run lint --workspaces && eslint . --ext .js,.jsx,.ts,.tsx",
+		"clean": "rimraf packages/*/dist packages/*/node_modules",
+		"setup": "npm install && npm run build:shared"
 	},
 	"dependencies": {
 		"@react-native-async-storage/async-storage": "^1.19.5",
@@ -66,6 +83,8 @@
 		"prettier": "^2.4.1",
 		"react-test-renderer": "18.2.0",
 		"typescript": "4.8.4",
-		"vite": "^7.0.5"
+		"vite": "^7.0.5",
+		"concurrently": "^8.2.0",
+		"rimraf": "^5.0.0"
 	}
 }

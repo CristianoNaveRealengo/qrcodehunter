@@ -95,4 +95,20 @@ const AppNavigator = () => {
   );
 };
 
+const linking = {
+  prefixes: ['/qrcodehunter/'],
+  config: {
+    screens: {
+      Welcome: '',
+      TeamRegistration: 'team-registration',
+      MainGameTabs: 'main-game',
+      GameResults: 'game-results',
+      AdminLogin: 'admin-login',
+      QRGeneration: 'qr-generation',
+      GameControl: 'game-control',
+    },
+  },
+  getPathFromState,
+  getStateFromPath,
+};
 export default AppNavigator;
